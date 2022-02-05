@@ -1,0 +1,11 @@
+[package]
+name = "rist"
+version = "0.0.1"
+
+[dependencies]
+librist-sys = { path = "../librist-rust/librist-sys" }
+log = "0.4"
+
+[dev-dependencies]
+pretty_assertions = "1"
+env_logger = "0.9"
