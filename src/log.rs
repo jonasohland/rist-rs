@@ -3,6 +3,7 @@ extern crate log;
 
 use std::ffi::{c_void, CStr};
 use std::os::raw::c_char;
+use std::pin::Pin;
 use std::sync::Mutex;
 
 fn get_log_level(rist_log_level: librist_sys::rist_log_level) -> Option<log::Level> {
@@ -59,7 +60,9 @@ unsafe extern "C" fn logcb_unsafe(
 }
 
 impl LogContextSafe {
-    pub fn create(c: impl FnMut(&str, log::Level, Option<&str>) + 'static) -> Box<LogContextSafe> {
+    pub fn create(
+        c: impl FnMut(&str, log::Level, Option<&str>) + 'static,
+    ) -> Pin<Box<LogContextSafe>> {
         let raw = Box::into_raw(Box::new(LogContextSafe {
             librist_logging_settings: librist_sys::rist_logging_settings {
                 log_level: librist_sys::rist_log_level_RIST_LOG_DEBUG,
@@ -73,14 +76,14 @@ impl LogContextSafe {
         }));
         unsafe {
             (*raw).librist_logging_settings.log_cb_arg = raw as *mut c_void;
-            Box::from_raw(raw)
+            Box::from_raw(raw).into()
         }
     }
 
     pub fn create_named(
         name: &str,
         c: impl FnMut(&str, log::Level, Option<&str>) + 'static,
-    ) -> Box<LogContextSafe> {
+    ) -> Pin<Box<LogContextSafe>> {
         let mut context = LogContextSafe::create(c);
         context.target = Some(String::from(name));
         return context;
@@ -96,7 +99,7 @@ pub struct LogContextUnsafe {
 impl LogContextUnsafe {
     pub fn create(
         c: impl FnMut(&str, log::Level, Option<&str>) + 'static,
-    ) -> Box<LogContextUnsafe> {
+    ) -> Pin<Box<LogContextUnsafe>> {
         let raw = Box::into_raw(Box::new(LogContextUnsafe {
             librist_logging_settings: librist_sys::rist_logging_settings {
                 log_level: librist_sys::rist_log_level_RIST_LOG_DEBUG,
@@ -110,14 +113,14 @@ impl LogContextUnsafe {
         }));
         unsafe {
             (*raw).librist_logging_settings.log_cb_arg = raw as *mut c_void;
-            Box::from_raw(raw)
+            Box::from_raw(raw).into()
         }
     }
 
     pub fn create_named(
         name: &str,
         c: impl FnMut(&str, log::Level, Option<&str>) + 'static,
-    ) -> Box<LogContextUnsafe> {
+    ) -> Pin<Box<LogContextUnsafe>> {
         let mut context = LogContextUnsafe::create(c);
         context.target = Some(String::from(name));
         return context;
@@ -125,28 +128,28 @@ impl LogContextUnsafe {
 }
 
 pub trait LogContext {
-    fn logging_settings_ptr(&mut self) -> *mut librist_sys::rist_logging_settings;
+    fn logging_settings_ptr(&self) -> *const librist_sys::rist_logging_settings;
 }
 
 impl LogContext for LogContextSafe {
-    fn logging_settings_ptr(&mut self) -> *mut librist_sys::rist_logging_settings {
-        &mut self.librist_logging_settings as *mut librist_sys::rist_logging_settings
+    fn logging_settings_ptr(&self) -> *const librist_sys::rist_logging_settings {
+        &self.librist_logging_settings as *const librist_sys::rist_logging_settings
     }
 }
 
 impl LogContext for LogContextUnsafe {
-    fn logging_settings_ptr(&mut self) -> *mut librist_sys::rist_logging_settings {
-        &mut self.librist_logging_settings as *mut librist_sys::rist_logging_settings
+    fn logging_settings_ptr(&self) -> *const librist_sys::rist_logging_settings {
+        &self.librist_logging_settings as *const librist_sys::rist_logging_settings
     }
 }
 
-pub fn create_default_logging_context() -> Box<dyn LogContext> {
+pub fn create_default_logging_context() -> Pin<Box<dyn LogContext>> {
     LogContextUnsafe::create(|message, level, target: Option<&str>| {
         log::log!(target: target.unwrap_or("rist"), level, "{}", message);
     })
 }
 
-pub fn create_default_named_logging_context(name: &str) -> Box<dyn LogContext> {
+pub fn create_default_named_logging_context(name: &str) -> Pin<Box<dyn LogContext>> {
     LogContextUnsafe::create_named(name, |message, level, target: Option<&str>| {
         log::log!(target: target.unwrap_or("rist"), level, "{}", message);
     })

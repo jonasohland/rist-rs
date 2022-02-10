@@ -1,10 +1,10 @@
 extern crate env_logger;
 extern crate rist;
 
-use std::ffi::*;
+use std::{ffi::*, pin::Pin};
 
 fn rist_log(
-    settings: *mut librist_sys::rist_logging_settings,
+    settings: *const librist_sys::rist_logging_settings,
     level: librist_sys::rist_log_level,
     message: &str,
 ) {
@@ -17,7 +17,7 @@ fn rist_log(
     }
 }
 
-fn log_messages(mut ctx: Box<dyn rist::log::LogContext>) {
+fn log_messages(ctx: Pin<Box<dyn rist::log::LogContext>>) {
     rist_log(
         ctx.logging_settings_ptr(),
         librist_sys::rist_log_level_RIST_LOG_DEBUG,
@@ -58,7 +58,7 @@ fn main() {
     let custom_context =
         rist::log::LogContextUnsafe::create(|message, _level, _target| println!("{}", message));
 
-    // create a named context that wraps a callback 
+    // create a named context that wraps a callback
     let custom_named_context =
         rist::log::LogContextUnsafe::create_named("rist-recv", |message, _level, target| {
             println!("{} - {}", target.unwrap(), message)
