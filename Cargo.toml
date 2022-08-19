@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "rist-rs-buffers", 
+    "rist-rs-core", 
+    "rist-rs-rtp", 
+    "rist-rs-net", 
+    "rist-rs-sdp",
+    "rist-rs-dev-tools/rist-rs-dev-net-sim"
+]

@@ -1,0 +1,18 @@
+[package]
+name = "rist-rs-buffers"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+rist-rs-core = { path = "../rist-rs-core" }
+num-traits = "0.2"
+log = "0.4"
+
+[dev-dependencies]
+simple_logger = "2.3"
+rand = "0.8"
+
+
+[features]
+default = ["alloc"]
+alloc = []

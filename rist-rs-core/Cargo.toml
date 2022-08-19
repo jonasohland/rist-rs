@@ -1,0 +1,13 @@
+[package]
+name = "rist-rs-core"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+log = "0.3"
+bytes = { version = "1.1", default-features = false }
+
+[features]
+default = ["alloc", "std"]
+alloc = []
+std = []
