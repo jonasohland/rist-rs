@@ -26,3 +26,5 @@ mod proto;
 pub mod util;
 
 pub mod static_vec;
+
+pub mod traits;

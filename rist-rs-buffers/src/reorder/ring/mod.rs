@@ -1,9 +1,14 @@
 // #![allow(unused)]
 
-use super::{OrderedPacket, ReorderOutput, ReorderReader, ReorderWriter, SequenceNumber};
 use alloc::{alloc::Global, vec::Vec};
 use core::{alloc::Allocator, marker::PhantomData};
-use rist_rs_core::static_vec::StaticVec;
+use rist_rs_core::{
+    static_vec::StaticVec,
+    traits::{
+        packet::seq::{OrderedPacket, SequenceNumber},
+        queue::reorder::{ReorderQueueEvent, ReorderQueueOutput, ReorderQueueInput},
+    },
+};
 
 trait Flag: Sized + Copy {
     fn swap(&mut self, val: Self) -> Self {
@@ -121,8 +126,7 @@ where
             current - last
         }
         .into();
-        diff > self.data.len() as u64
-            && diff <= (S::max_value().into() - self.data.len() as u64)
+        diff > self.data.len() as u64 && diff <= (S::max_value().into() - self.data.len() as u64)
     }
 
     /// Try to push a packet to the buffer. Returns the packet if it could not be pushed
@@ -202,7 +206,7 @@ impl<S, P, A> ReorderRingBuffer<S, P, A>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
-    A: Allocator
+    A: Allocator,
 {
     /// Create a new reorder buffer using the provided allocator
     #[allow(unused)]
@@ -287,7 +291,7 @@ where
     }
 }
 
-impl<S, P, A> ReorderWriter<S, P> for ReorderRingBuffer<S, P, A>
+impl<S, P, A> ReorderQueueInput<S, P> for ReorderRingBuffer<S, P, A>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
@@ -295,7 +299,7 @@ where
     u64: From<S>,
 {
     #[allow(unused)]
-    fn send(&mut self, packet: P) -> Option<P> {
+    fn put(&mut self, packet: P) -> Option<P> {
         let s = packet.sequence_number();
         if self.is_seq_reset(self.write_seq, s) {
             log::debug!("reset buffer from previous seq {} -> {}", self.write_seq, s);
@@ -315,31 +319,31 @@ where
     }
 }
 
-impl<S, P, A> ReorderReader<S, P> for ReorderRingBuffer<S, P, A>
+impl<S, P, A> ReorderQueueOutput<S, P> for ReorderRingBuffer<S, P, A>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
     A: Allocator,
 {
     #[allow(unused)]
-    fn receive(&mut self) -> ReorderOutput<S, P> {
+    fn next_event(&mut self) -> ReorderQueueEvent<S, P> {
         if self.read_reset_flag() {
             self.next_read_seq();
-            ReorderOutput::Reset(self.read_seq)
+            ReorderQueueEvent::Reset(self.read_seq)
         } else {
             match self.try_pop() {
                 Some(p) => {
                     self.next_read_seq();
                     self.metrics.delivered += 1;
-                    ReorderOutput::Packet(p)
+                    ReorderQueueEvent::Packet(p)
                 }
                 None => {
                     if self.len() + 2 >= self.data.len() {
                         self.next_read_seq();
                         self.metrics.lost += 1;
-                        ReorderOutput::Missing
+                        ReorderQueueEvent::Missing
                     } else {
-                        ReorderOutput::NeedMore
+                        ReorderQueueEvent::NeedMore
                     }
                 }
             }

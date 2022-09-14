@@ -6,12 +6,15 @@ use std::{
     time::{Duration, SystemTime},
 };
 
-use rist_rs_buffers::reorder::{
-    ring::ReorderRingBuffer, OrderedPacket, ReorderOutput, ReorderReader, ReorderWriter,
-};
+use rist_rs_buffers::reorder::ring::ReorderRingBuffer;
+
 use rist_rs_core::{
     bits::rtp::{error::Error as RTPError, RTPView},
     static_vec::StaticVec,
+    traits::{
+        packet::seq::OrderedPacket,
+        queue::reorder::{ReorderQueueEvent, ReorderQueueInput, ReorderQueueOutput},
+    },
 };
 
 struct RTPPacket {
@@ -141,7 +144,7 @@ fn main() -> ! {
                 // send to reorder buffer
                 Ok(packet) => {
                     stream_metrics.bytes_in += packet.payload.len() as u64;
-                    reorder_buf.send(packet);
+                    reorder_buf.put(packet);
                 }
             },
             Err(e) => {
@@ -151,9 +154,9 @@ fn main() -> ! {
         }
         // receive events from reorder buffer
         loop {
-            match reorder_buf.receive() {
+            match reorder_buf.next_event() {
                 // packet received from buffer
-                ReorderOutput::Packet(p) => {
+                ReorderQueueEvent::Packet(p) => {
                     match &tx_sock {
                         // forward
                         Some(sock) => match sock.send(&p.payload) {
@@ -174,11 +177,11 @@ fn main() -> ! {
                     continue;
                 }
                 // no more packets available, try receiving more
-                ReorderOutput::NeedMore => break,
+                ReorderQueueEvent::NeedMore => break,
                 // the next packet is considered missing, check next event from the buffer
-                ReorderOutput::Missing => continue,
+                ReorderQueueEvent::Missing => continue,
                 // sequence number was reset
-                ReorderOutput::Reset(s) => {
+                ReorderQueueEvent::Reset(s) => {
                     log::info!("buffer indicated a reset to sequence number: {}", s);
                     // check the next event from the buffer
                     continue;

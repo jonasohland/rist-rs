@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 log = "0.3"
 bytes = { version = "1.1", default-features = false }
+num-traits = { version = "0.2", default-features = false }
 
 [features]
 default = ["alloc", "std"]
