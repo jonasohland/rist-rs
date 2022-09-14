@@ -1,11 +1,11 @@
 [workspace]
 members = [
-    "rist-rs-bits",
-    "rist-rs-buffers", 
-    "rist-rs-core", 
-    "rist-rs-rtp", 
-    "rist-rs-net", 
-    "rist-rs-sdp",
-    "rist-rs-macros",
-    "rist-rs-dev-tools/rist-rs-dev-net-sim"
+    "crates/rist-rs-bits",
+    "crates/rist-rs-buffers", 
+    "crates/rist-rs-core", 
+    "crates/rist-rs-rtp", 
+    "crates/rist-rs-net", 
+    "crates/rist-rs-sdp",
+    "crates/rist-rs-macros",
+    "tools/netzwerker"
 ]
