@@ -507,6 +507,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "rist-io"
+version = "0.0.1"
+
+[[package]]
 name = "rist-rs-bits"
 version = "0.0.1"
 dependencies = [

@@ -7,5 +7,6 @@ members = [
     "crates/rist-rs-net", 
     "crates/rist-rs-sdp",
     "crates/rist-rs-macros",
-    "tools/netzwerker"
+    "tools/netzwerker",
+    "tools/rist-io"
 ]
