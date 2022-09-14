@@ -1,4 +1,5 @@
 use core::fmt::Display;
+use rist_rs_macros::features::cfg_std;
 
 /// An Ipv6 Address
 #[derive(Debug, PartialEq, Eq, PartialOrd, Hash, Ord, Clone, Copy)]
@@ -166,40 +167,39 @@ impl From<Ipv6Addr> for IpAddr {
     }
 }
 
-#[cfg(feature = "std")]
-impl From<Ipv4Addr> for std::net::Ipv4Addr {
-    fn from(a: Ipv4Addr) -> Self {
-        std::net::Ipv4Addr::from(a.octets())
-    }
-}
+cfg_std! {
 
-#[cfg(feature = "std")]
-impl From<Ipv4Addr> for std::net::IpAddr {
-    fn from(a: Ipv4Addr) -> Self {
-        IpAddr::from(a).into()
-    }
-}
-
-#[cfg(feature = "std")]
-impl From<Ipv6Addr> for std::net::IpAddr {
-    fn from(a: Ipv6Addr) -> Self {
-        IpAddr::from(a).into()
-    }
-}
-
-#[cfg(feature = "std")]
-impl From<Ipv6Addr> for std::net::Ipv6Addr {
-    fn from(a: Ipv6Addr) -> Self {
-        std::net::Ipv6Addr::from(a.octets())
-    }
-}
-
-#[cfg(feature = "std")]
-impl From<IpAddr> for std::net::IpAddr {
-    fn from(a: IpAddr) -> Self {
-        match a {
-            IpAddr::V4(v4) => std::net::IpAddr::V4(v4.into()),
-            IpAddr::V6(v6) => std::net::IpAddr::V6(v6.into()),
+    impl From<Ipv4Addr> for std::net::Ipv4Addr {
+        fn from(a: Ipv4Addr) -> Self {
+            std::net::Ipv4Addr::from(a.octets())
         }
     }
+
+    impl From<Ipv4Addr> for std::net::IpAddr {
+        fn from(a: Ipv4Addr) -> Self {
+            IpAddr::from(a).into()
+        }
+    }
+
+    impl From<Ipv6Addr> for std::net::IpAddr {
+        fn from(a: Ipv6Addr) -> Self {
+            IpAddr::from(a).into()
+        }
+    }
+
+    impl From<Ipv6Addr> for std::net::Ipv6Addr {
+        fn from(a: Ipv6Addr) -> Self {
+            std::net::Ipv6Addr::from(a.octets())
+        }
+    }
+
+    impl From<IpAddr> for std::net::IpAddr {
+        fn from(a: IpAddr) -> Self {
+            match a {
+                IpAddr::V4(v4) => std::net::IpAddr::V4(v4.into()),
+                IpAddr::V6(v6) => std::net::IpAddr::V6(v6.into()),
+            }
+        }
+    }
+
 }

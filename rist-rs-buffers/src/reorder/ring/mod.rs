@@ -1,12 +1,12 @@
 // #![allow(unused)]
 
-use alloc::{alloc::Global, vec::Vec};
-use core::{alloc::Allocator, marker::PhantomData};
+use alloc::vec::Vec;
+use core::marker::PhantomData;
 use rist_rs_core::{
     static_vec::StaticVec,
     traits::{
         packet::seq::{OrderedPacket, SequenceNumber},
-        queue::reorder::{ReorderQueueEvent, ReorderQueueOutput, ReorderQueueInput},
+        queue::reorder::{ReorderQueueEvent, ReorderQueueInput, ReorderQueueOutput},
     },
 };
 
@@ -28,18 +28,16 @@ pub struct ReorderRingBufferMetrics {
     pub rejected: u64,
     pub reordered: u64,
 }
-
-pub struct ReorderRingBuffer<S, P, A = Global>
+pub struct ReorderRingBuffer<S, P>
 where
     S: SequenceNumber,
-    P: OrderedPacket<S>,
-    A: Allocator,
+    P: OrderedPacket<S>
 {
     /// Internal metrics
     metrics: ReorderRingBufferMetrics,
 
     /// holds all the packet data
-    data: StaticVec<Option<P>, A>,
+    data: StaticVec<Option<P>>,
 
     /// write-head position
     write_pos: usize,
@@ -60,22 +58,31 @@ where
     _p: PhantomData<S>,
 }
 
-impl<S, P> ReorderRingBuffer<S, P, Global>
+impl<S, P> ReorderRingBuffer<S, P>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
 {
     #[allow(unused)]
     pub fn new(len: usize) -> Self {
-        Self::new_in(len, Global)
+        Self {
+            metrics: ReorderRingBufferMetrics::default(),
+            data: StaticVec::new(len),
+            write_pos: 0,
+            read_pos: 0,
+            read_seq: S::zero(),
+            write_seq: S::zero(),
+            reset_flag: false,
+            _p: Default::default(),
+        }
+        
     }
 }
 
-impl<S, P, A> ReorderRingBuffer<S, P, A>
+impl<S, P> ReorderRingBuffer<S, P>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
-    A: Allocator,
 {
     /// Set a iterator position to the next field in the buffer
     fn advance(pos: &mut usize, len: usize) -> usize {
@@ -202,26 +209,11 @@ where
     }
 }
 
-impl<S, P, A> ReorderRingBuffer<S, P, A>
+impl<S, P> ReorderRingBuffer<S, P>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
-    A: Allocator,
 {
-    /// Create a new reorder buffer using the provided allocator
-    #[allow(unused)]
-    pub fn new_in(len: usize, alloc: A) -> Self {
-        Self {
-            metrics: ReorderRingBufferMetrics::default(),
-            data: StaticVec::new_in(len, alloc),
-            write_pos: 0,
-            read_pos: 0,
-            read_seq: S::zero(),
-            write_seq: S::zero(),
-            reset_flag: false,
-            _p: Default::default(),
-        }
-    }
 
     /// Reset the buffer and set the next sequence number to be read
     #[allow(unused)]
@@ -291,11 +283,10 @@ where
     }
 }
 
-impl<S, P, A> ReorderQueueInput<S, P> for ReorderRingBuffer<S, P, A>
+impl<S, P> ReorderQueueInput<S, P> for ReorderRingBuffer<S, P>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
-    A: Allocator,
     u64: From<S>,
 {
     #[allow(unused)]
@@ -319,11 +310,10 @@ where
     }
 }
 
-impl<S, P, A> ReorderQueueOutput<S, P> for ReorderRingBuffer<S, P, A>
+impl<S, P> ReorderQueueOutput<S, P> for ReorderRingBuffer<S, P>
 where
     S: SequenceNumber,
     P: OrderedPacket<S>,
-    A: Allocator,
 {
     #[allow(unused)]
     fn next_event(&mut self) -> ReorderQueueEvent<S, P> {

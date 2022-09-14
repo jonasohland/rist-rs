@@ -1,8 +1,6 @@
 #![allow(unused)]
 
-use alloc::vec::Vec;
 use core::fmt::Debug;
-use rist_rs_core::bits::rtp::RTPView;
 
 use super::*;
 
@@ -29,7 +27,7 @@ impl OrderedPacket<u16> for TestPacket<u16> {
     }
 }
 
-type TestReorderBuffer<S, A = Global> = ReorderRingBuffer<S, TestPacket<S>, A>;
+type TestReorderBuffer<S> = ReorderRingBuffer<S, TestPacket<S>>;
 
 /// Initialize the test environment
 #[cfg(test)]

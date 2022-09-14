@@ -1,33 +1,29 @@
 use core::{
-    alloc::Allocator,
     ops::{Deref, DerefMut},
 };
 
-use alloc::alloc::Global;
+use alloc::vec::Vec;
 
-pub struct StaticVec<T, A = Global>
+pub struct StaticVec<T>
 where
-    A: Allocator,
     T: Default,
 {
-    data: Vec<T, A>,
+    data: Vec<T>,
 }
 
-impl<T, A> StaticVec<T, A>
+impl<T> StaticVec<T>
 where
-    A: Allocator,
     T: Default,
 {
-    pub fn new_in(len: usize, alloc: A) -> Self {
-        let mut data = Vec::<T, A>::with_capacity_in(len, alloc);
+    pub fn new(len: usize) -> Self {
+        let mut data = Vec::<T>::with_capacity(len);
         data.resize_with(len, Default::default);
         Self { data }
     }
 }
 
-impl<T, A> Deref for StaticVec<T, A>
+impl<T> Deref for StaticVec<T>
 where
-    A: Allocator,
     T: Default,
 {
     type Target = [T];
@@ -36,22 +32,12 @@ where
     }
 }
 
-impl<T, A> DerefMut for StaticVec<T, A>
+impl<T> DerefMut for StaticVec<T>
 where
-    A: Allocator,
     T: Default,
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
-    }
-}
-
-impl<T> StaticVec<T, Global>
-where
-    T: Default,
-{
-    pub fn new(len: usize) -> Self {
-        Self::new_in(len, Global)
     }
 }
 

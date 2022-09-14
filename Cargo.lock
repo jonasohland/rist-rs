@@ -507,13 +507,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rist-rs-bits"
+version = "0.0.1"
+dependencies = [
+ "log 0.3.9",
+ "rist-rs-core",
+]
+
+[[package]]
 name = "rist-rs-buffers"
 version = "0.0.1"
 dependencies = [
  "log 0.4.17",
  "num-traits",
  "rand",
+ "rist-rs-bits",
  "rist-rs-core",
+ "rist-rs-macros",
  "simple_logger",
 ]
 
@@ -524,7 +534,12 @@ dependencies = [
  "bytes",
  "log 0.3.9",
  "num-traits",
+ "rist-rs-macros",
 ]
+
+[[package]]
+name = "rist-rs-macros"
+version = "0.0.1"
 
 [[package]]
 name = "rist-rs-net"

@@ -4,6 +4,7 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
+rist-rs-macros = { path = "../rist-rs-macros" }
 log = "0.3"
 bytes = { version = "1.1", default-features = false }
 num-traits = { version = "0.2", default-features = false }

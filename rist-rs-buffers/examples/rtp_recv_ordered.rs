@@ -6,10 +6,9 @@ use std::{
     time::{Duration, SystemTime},
 };
 
+use rist_rs_bits::rtp::{error::Error as RTPError, RTPView};
 use rist_rs_buffers::reorder::ring::ReorderRingBuffer;
-
 use rist_rs_core::{
-    bits::rtp::{error::Error as RTPError, RTPView},
     static_vec::StaticVec,
     traits::{
         packet::seq::OrderedPacket,

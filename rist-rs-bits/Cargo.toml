@@ -1,0 +1,14 @@
+[package]
+name = "rist-rs-bits"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+rist-rs-core = { path = "../rist-rs-core" }
+log = "0.3"
+
+[features]
+default = ["alloc", "std", "allocator_api"]
+alloc = []
+std = []
+allocator_api = []

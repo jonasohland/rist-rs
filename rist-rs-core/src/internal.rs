@@ -1,1 +1,1 @@
-pub (crate) const INTERNAL_ERR_PRE_VALIDATED: &str = "An internal function returned an unexpected error. The condition that caused this error should have been validated earlier. This is a bug and should be reported to the maintainers of this library on GitHub";
+pub const INTERNAL_ERR_PRE_VALIDATED: &str = "An internal function returned an unexpected error. The condition that caused this error should have been validated earlier. This is a bug and should be reported to the maintainers of this library on GitHub";
