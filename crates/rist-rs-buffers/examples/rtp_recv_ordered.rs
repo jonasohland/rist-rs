@@ -1,11 +1,3 @@
-use std::{
-    env,
-    net::{Ipv4Addr, SocketAddrV4, UdpSocket},
-    process::exit,
-    str::FromStr,
-    time::{Duration, SystemTime},
-};
-
 use rist_rs_bits::rtp::{error::Error as RTPError, RTPView};
 use rist_rs_buffers::reorder::ring::ReorderRingBuffer;
 use rist_rs_core::{
@@ -14,6 +6,13 @@ use rist_rs_core::{
         packet::seq::OrderedPacket,
         queue::reorder::{ReorderQueueEvent, ReorderQueueInput, ReorderQueueOutput},
     },
+};
+use std::{
+    env,
+    net::{Ipv4Addr, SocketAddrV4, UdpSocket},
+    process::exit,
+    str::FromStr,
+    time::{Duration, SystemTime},
 };
 
 struct RTPPacket {
