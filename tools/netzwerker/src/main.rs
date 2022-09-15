@@ -28,7 +28,7 @@ fn main() {
     tracing::subscriber::set_global_default(subscriber).unwrap();
     match Config::load(&cmd_line) {
         Ok(cfg) => {
-            let num_threads = 2usize;
+            let num_threads = std::cmp::max(cfg.threads.unwrap_or(4) - 1, 1);
             let rt = match num_threads {
                 1 => tokio::runtime::Builder::new_current_thread()
                     .enable_all()

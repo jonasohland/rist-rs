@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs};
 
 use serde::Deserialize;
 
-use crate::processor::{drop, rx, splitter, tx, delay};
+use crate::processor::{delay, drop, rx, splitter, tx};
 use anyhow::{Context, Result};
 use clap;
 
@@ -25,7 +25,7 @@ pub enum ProcessorConfigs {
     Splitter(splitter::Config),
     Tx(tx::Config),
     Rx(rx::Config),
-    Delay(delay::Config)
+    Delay(delay::Config),
 }
 
 #[derive(Debug, Deserialize)]
@@ -36,10 +36,14 @@ pub struct Config {
 
 impl Config {
     pub fn load(cmd_line: &CmdLine) -> Result<Self> {
-        toml::from_str(
-            &fs::read_to_string(&cmd_line.config)
-                .with_context(|| format!("failed to read config file from: {}", cmd_line.config))?,
-        )
-        .with_context(|| format!("failed to parse config file from: {}", cmd_line.config))
+        let mut cfg: Config =
+            toml::from_str(&fs::read_to_string(&cmd_line.config).with_context(|| {
+                format!("failed to read config file from: {}", cmd_line.config)
+            })?)
+            .with_context(|| format!("failed to parse config file from: {}", cmd_line.config))?;
+        if let Some(t) = cmd_line.threads {
+            cfg.threads = Some(t)
+        }
+        Ok(cfg)
     }
 }
