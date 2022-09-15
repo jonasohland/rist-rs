@@ -44,7 +44,7 @@ dispatch_enum! {
 
 dispatch_enum! {
     (ProcessorClient: traits::ProcessorClientConnectInput) => {
-        async connect(destination: &str, name: &str, input: Connector) -> Result<()> { RxProcessorClient, TxProcessorClient, SplitterProcessorClient, GenericProcessorClient }
+        async connect(destination: &str, name: &str, connector: Connector) -> Result<()> { RxProcessorClient, TxProcessorClient, SplitterProcessorClient, GenericProcessorClient }
     }
 }
 

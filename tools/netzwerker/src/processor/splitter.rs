@@ -252,7 +252,7 @@ impl ProcessorState {
         for input in &self.config.inputs {
             tracing::debug!(input, "connect input");
             self.controller
-                .connect_input(&self.name, input, self.input.get_connector())
+                .connect(&self.name, input, self.input.get_connector())
                 .await?;
         }
         Ok(())

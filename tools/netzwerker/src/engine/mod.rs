@@ -32,14 +32,14 @@ impl Engine {
         self.processor_host.processors()
     }
 
-    pub async fn connect_input(
+    pub async fn connect(
         &mut self,
         destination: &str,
         name: &str,
-        input: Connector,
+        connector: Connector,
     ) -> anyhow::Result<()> {
         self.processor_host
-            .connect(destination, name, input)
+            .connect(destination, name, connector)
             .await
             .with_context(|| format!("failed to connect input to {} from {}", destination, name))
     }

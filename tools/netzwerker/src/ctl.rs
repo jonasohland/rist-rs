@@ -27,7 +27,7 @@ pub enum ControlMessage {
     Start(Controller),
     StartComplete,
     Stop,
-    ConnectInput(String, String, Connector, oneshot::Sender<Result<()>>),
+    Connect(String, String, Connector, oneshot::Sender<Result<()>>),
 }
 
 #[derive(Debug, Clone)]
@@ -67,13 +67,13 @@ impl Controller {
             .send_err_ctx("Stop", "Controller")
     }
 
-    pub async fn connect_input(&self, destination: &str, label: &str, input: Connector) -> Result<()> {
+    pub async fn connect(&self, destination: &str, label: &str, connector: Connector) -> Result<()> {
         let (tx, rx) = oneshot::channel();
         self.tx
-            .send(ControlMessage::ConnectInput(
+            .send(ControlMessage::Connect(
                 destination.to_owned(),
                 label.to_owned(),
-                input,
+                connector,
                 tx,
             ))
             .send_err_ctx("ConnectInput", "Controller")?;
@@ -232,9 +232,9 @@ impl ControlProcessorState {
                 ControlMessage::Stop => {
                     self.stop().await.unwrap();
                 }
-                ControlMessage::ConnectInput(destination, name, input, responder) => {
+                ControlMessage::Connect(destination, name, input, responder) => {
                     responder
-                        .send(self.engine.connect_input(&destination, &name, input).await)
+                        .send(self.engine.connect(&destination, &name, input).await)
                         .ok();
                 }
                 ControlMessage::StartComplete => self.on_start_complete().await,

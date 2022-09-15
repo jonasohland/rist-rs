@@ -36,7 +36,7 @@ impl ProcessorImplementation<DropEvent> for DropProcessorState {
     async fn build(&mut self, ctl: &Controller) -> Result<()> {
         for input in &self.cfg.inputs {
             tracing::debug!(input, "connect input");
-            ctl.connect_input(
+            ctl.connect(
                 &self.name,
                 input,
                 Connector::DropConnector(DropConnector::new(input.clone())),

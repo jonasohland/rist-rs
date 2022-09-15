@@ -112,7 +112,7 @@ impl ProcessorHost {
         }
     }
 
-    pub async fn connect(&self, destination: &str, name: &str, input: Connector) -> Result<()> {
+    pub async fn connect(&self, destination: &str, name: &str, connector: Connector) -> Result<()> {
         let (proc_name, label) = name
             .split_once('.')
             .map(|(l, r)| (l.to_owned(), r.to_owned()))
@@ -121,7 +121,7 @@ impl ProcessorHost {
             .get(&proc_name)
             .ok_or_else(|| anyhow!("processor {} not found", proc_name))?
             .client()
-            .connect(destination, &label, input)
+            .connect(destination, &label, connector)
             .await
     }
 
