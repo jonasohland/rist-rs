@@ -4,6 +4,7 @@ pub mod rx;
 pub mod splitter;
 pub mod traits;
 pub mod tx;
+pub mod delay;
 
 use drop::DropConnector;
 use generic::{connector::simple::SimpleConnector, GenericProcessor, GenericProcessorClient};

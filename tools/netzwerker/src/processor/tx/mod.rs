@@ -187,8 +187,7 @@ impl TxProcessorState {
                     self.send_packet(p).await;
                 }
             }
-
-            tracing::debug!("done");
         }
+        tracing::debug!("done");
     }
 }

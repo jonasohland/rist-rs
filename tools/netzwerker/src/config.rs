@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs};
 
 use serde::Deserialize;
 
-use crate::processor::{drop, rx, splitter, tx};
+use crate::processor::{drop, rx, splitter, tx, delay};
 use anyhow::{Context, Result};
 use clap;
 
@@ -25,6 +25,7 @@ pub enum ProcessorConfigs {
     Splitter(splitter::Config),
     Tx(tx::Config),
     Rx(rx::Config),
+    Delay(delay::Config)
 }
 
 #[derive(Debug, Deserialize)]

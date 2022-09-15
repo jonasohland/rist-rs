@@ -13,7 +13,7 @@ use crate::{
             ProcessorClientConnectInput, ProcessorClientLifecycle, ProcessorGetClient,
             ProcessorJoin,
         },
-        tx, Connector, Processor, ProcessorClient,
+        tx, Connector, Processor, ProcessorClient, delay::DelayProcessorState,
     },
 };
 
@@ -52,6 +52,9 @@ async fn build_processor(
             ProcessorConfigs::Drop(cfg) => generic::generic_processor!(
                 "drop", name.clone(), controller, DropProcessorState::new(name.to_owned(), cfg.clone())
             ),
+            ProcessorConfigs::Delay(cfg) => generic::generic_processor!(
+                "delay", name.clone(), controller, DelayProcessorState::new(name.to_owned(), cfg.clone())
+            )
         },
     ))
 }

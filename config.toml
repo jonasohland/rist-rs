@@ -1,17 +1,13 @@
 [proc.rx_1]
 type = "rx"
-bind = { address = "127.0.0.1", port = 9939 }
+bind = { addr = "127.0.0.1", port = 9939 }
 
-[proc.split_1]
-type = "splitter"
-inputs = ["rx_1"]
-outputs = { out = {}, drop = { percent = 0.1 } }
-
-[proc.drop_1]
-type = "drop"
-inputs = [ "split_1.drop" ]
+[proc.delay]
+type = "delay"
+inputs = [ "rx_1" ]
+delay = 5000
 
 [proc.tx_1]
 type = "tx"
-inputs = [ "split_1.out" ]
-send = { address = "127.0.0.1", port = 2292 }
+inputs = [ "delay" ]
+send = { address = "127.0.0.1", port = 9999 }

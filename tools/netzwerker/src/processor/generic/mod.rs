@@ -24,6 +24,8 @@ where
         futures::future::pending().await
     }
 
+    async fn event(&mut self, e: Event);
+
     async fn start(&mut self, ctl: &Controller) -> Result<()>;
     async fn stop(&mut self, ctl: &Controller) -> Result<()>;
     async fn build(&mut self, ctl: &Controller) -> Result<()>;
@@ -32,7 +34,6 @@ where
         Err(anyhow!("this processor has no outputs to connect to"))
     }
 
-    async fn event(&mut self, e: Event);
 }
 
 #[derive(Debug)]
@@ -112,8 +113,15 @@ impl traits::ProcessorClientLifecycle for GenericProcessorClient {
 
 #[async_trait]
 impl traits::ProcessorClientConnectInput for GenericProcessorClient {
-    async fn connect(&self, destination: &str, label: &str, input: Connector) -> Result<()> {
-        todo!()
+    async fn connect(&self, destination: &str, label: &str, connector: Connector) -> Result<()> {
+        let (tx, rx) = oneshot::channel();
+        self.tx.send(GenericProcessorEvent::Connect(
+            destination.to_owned(),
+            label.to_owned(),
+            connector,
+            tx,
+        ))?;
+        rx.await?
     }
 }
 
@@ -150,7 +158,7 @@ where
                 }
                 opt_user_event = self.implementation.select(&self.ctl) => {
                     if let Some(event) = opt_user_event {
-                        self.implementation.event(event);
+                        self.implementation.event(event).await;
                     }
                     None
                 }

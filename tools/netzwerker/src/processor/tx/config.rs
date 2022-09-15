@@ -43,7 +43,7 @@ impl Config {
     async fn connect(&self, sock: UdpSocket) -> Result<UdpSocket> {
         let destination = self.send.sock_addr();
         tracing::info!(?destination, "connect udp socket");
-        sock.connect(destination).await?;
+        sock.connect(destination).await.context("connect() failed")?;
         Ok(sock)
     }
 
@@ -103,7 +103,7 @@ impl Config {
         self.connect(
             UdpSocket::from_std(
                 self.join_group(
-                    UdpSocket::bind("[::]:0")
+                    UdpSocket::bind("0.0.0.0:0")
                         .await?
                         .into_std()
                         .context("failed to extract underlying socket")?
