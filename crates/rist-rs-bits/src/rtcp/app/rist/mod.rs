@@ -1,5 +1,5 @@
-pub mod rtt;
 pub mod range_nack;
+pub mod rtt;
 
 pub mod error {
 
@@ -8,7 +8,7 @@ pub mod error {
         UnknownSubtype(u8),
         EndOfPacketReached,
         RTT(super::rtt::error::Error),
-        RangeNack(super::range_nack::error::Error)
+        RangeNack(super::range_nack::error::Error),
     }
 
     impl From<super::rtt::error::Error> for Error {
@@ -22,14 +22,13 @@ pub mod error {
             Error::RangeNack(e)
         }
     }
-
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum RistApplicationSpecificMessage<'a> {
     RTTEchoRequest(rtt::EchoMessage<'a>),
     RTTEchoResponse(rtt::EchoMessage<'a>),
-    RangeNack(range_nack::RangeNackMessage<'a>)
+    RangeNack(range_nack::RangeNackMessage<'a>),
 }
 
 impl<'a> RistApplicationSpecificMessage<'a> {
@@ -41,7 +40,7 @@ impl<'a> RistApplicationSpecificMessage<'a> {
     {
         match subtype {
             range_nack::SUBTYPE_RANGE_NACK => Ok(RistApplicationSpecificMessage::RangeNack(
-                range_nack::RangeNackMessage::try_new(bytes)?
+                range_nack::RangeNackMessage::try_new(bytes)?,
             )),
             rtt::SUBTYPE_RTT_ECHO_REQ => Ok(RistApplicationSpecificMessage::RTTEchoRequest(
                 rtt::EchoMessage::try_new(bytes)?,

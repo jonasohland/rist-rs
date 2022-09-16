@@ -233,5 +233,3 @@ fn missing() {
     send_seq(&mut buf, [6, 7]);
     assert!(matches!(buf.next_event(), ReorderQueueEvent::Missing));
 }
-
-

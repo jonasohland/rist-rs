@@ -35,10 +35,5 @@ pub trait ProcessorClientLifecycle {
 
 #[async_trait]
 pub trait ProcessorClientConnectInput {
-    async fn connect(
-        &self,
-        destination: &str,
-        name: &str,
-        input: super::Connector,
-    ) -> Result<()>;
+    async fn connect(&self, destination: &str, name: &str, input: super::Connector) -> Result<()>;
 }

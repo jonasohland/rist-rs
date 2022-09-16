@@ -113,11 +113,7 @@ enum RunState {
 }
 
 impl ProcessorState {
-    fn new(
-        socket: UdpSocket,
-        rx: UnboundedReceiver<ProcessorEvent>,
-        _ctl: Controller,
-    ) -> Self {
+    fn new(socket: UdpSocket, rx: UnboundedReceiver<ProcessorEvent>, _ctl: Controller) -> Self {
         Self {
             socket,
             rx,

@@ -295,8 +295,8 @@ impl<'a> Iterator for RTCPPacketViewIterator<'a> {
 
 #[allow(unused)]
 mod test {
-    use crate::rtcp::RTCPPacketViewIterator;
     use super::RTCPPacketView;
+    use crate::rtcp::RTCPPacketViewIterator;
 
     const RR_WITH_SDES: [u8; 416] = [
         // packet 0

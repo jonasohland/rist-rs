@@ -43,7 +43,9 @@ impl Config {
     async fn connect(&self, sock: UdpSocket) -> Result<UdpSocket> {
         let destination = self.send.sock_addr();
         tracing::info!(?destination, "connect udp socket");
-        sock.connect(destination).await.context("connect() failed")?;
+        sock.connect(destination)
+            .await
+            .context("connect() failed")?;
         Ok(sock)
     }
 

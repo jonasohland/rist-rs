@@ -1,7 +1,7 @@
 use core::fmt::{Debug, Display};
 use num_traits::{Bounded, NumOps, One, Unsigned, WrappingAdd, WrappingSub, Zero};
 
-/// Sequence number trait. This trait is implemented for 
+/// Sequence number trait. This trait is implemented for
 /// u8, u16, u32 and u64
 pub trait SequenceNumber:
     Unsigned

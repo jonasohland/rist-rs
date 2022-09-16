@@ -62,9 +62,8 @@ impl ProcessorImplementation<DelayEvent> for DelayProcessorState {
         match self.next_deadline.take() {
             Some(instant) => {
                 if instant <= Instant::now() {
-                    Some(DelayEvent::WakeUp) 
-                }
-                else {
+                    Some(DelayEvent::WakeUp)
+                } else {
                     let sleep = tokio::time::sleep_until(instant);
                     tokio::pin!(sleep);
                     select! {
@@ -121,7 +120,6 @@ impl ProcessorImplementation<DelayEvent> for DelayProcessorState {
 }
 
 impl DelayProcessorState {
-
     async fn send(&mut self, packet: DelayedPacket) {
         self.connectors.send(packet.packet).await
     }
@@ -153,5 +151,4 @@ impl DelayProcessorState {
             self.next_deadline = Some(deadline)
         }
     }
-
 }

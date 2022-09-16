@@ -1,6 +1,4 @@
-use core::{
-    ops::{Deref, DerefMut},
-};
+use core::ops::{Deref, DerefMut};
 
 use alloc::vec::Vec;
 

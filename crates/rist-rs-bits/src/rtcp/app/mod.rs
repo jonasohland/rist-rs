@@ -46,7 +46,6 @@ impl<'a> TryFrom<(u8, &'a [u8])> for ApplicationSpecificMessageView<'a> {
 }
 
 impl<'a> ApplicationSpecificMessageView<'a> {
-
     const SSRC_OFFSET: usize = 0;
     const NAME_OFFSET: usize = Self::SSRC_OFFSET + 4;
     const NAME_LEN: usize = 4;

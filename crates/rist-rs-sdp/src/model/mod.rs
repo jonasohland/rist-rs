@@ -1,5 +1,3 @@
 pub mod attribute;
 
-pub struct SessionDescription {
-
-}
+pub struct SessionDescription {}

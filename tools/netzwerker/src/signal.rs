@@ -98,10 +98,7 @@ pub struct SignalWaiter {
 }
 
 impl SignalWaiter {
-    pub async fn try_new(
-        signals: Vec<SignalKind>,
-        ctl: Controller,
-    ) -> Result<Self> {
+    pub async fn try_new(signals: Vec<SignalKind>, ctl: Controller) -> Result<Self> {
         let (tx, rx) = channel();
         Ok(Self {
             tx,

@@ -1,17 +1,12 @@
 #[derive(Debug)]
 pub enum Error {
-    InvalidLength {
-        expected: usize,
-        actual: usize
-    },
+    InvalidLength { expected: usize, actual: usize },
     TooSmall(usize),
-    UnknownBodyType(u8)
+    UnknownBodyType(u8),
 }
 
 pub fn invalid_length(expected: usize, actual: usize) -> Error {
-    Error::InvalidLength {
-        expected, actual
-    }
+    Error::InvalidLength { expected, actual }
 }
 
 pub fn too_small(l: usize) -> Error {

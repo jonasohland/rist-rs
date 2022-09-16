@@ -1,6 +1,6 @@
 use std::fmt::{Debug, Display};
 
-use anyhow::{Context};
+use anyhow::Context;
 
 use tokio::sync::{mpsc, oneshot};
 

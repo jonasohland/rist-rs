@@ -33,7 +33,6 @@ where
     async fn connect(&mut self, dest: &str, label: &str, input: Connector) -> Result<()> {
         Err(anyhow!("this processor has no outputs to connect to"))
     }
-
 }
 
 #[derive(Debug)]

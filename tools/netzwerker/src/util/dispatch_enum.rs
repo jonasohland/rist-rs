@@ -1,5 +1,5 @@
 macro_rules! dispatch_enum {
-    
+
     ($(($name:ident $(,$derived:ty)*) { $($implementation:tt),* }),*) => {
         $(
             #[derive($($derived),*)]
@@ -178,4 +178,4 @@ macro_rules! dispatch_enum {
 
 }
 
-pub (crate) use dispatch_enum;
+pub(crate) use dispatch_enum;

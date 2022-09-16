@@ -31,7 +31,7 @@ pub struct ReorderRingBufferMetrics {
 pub struct ReorderRingBuffer<S, P>
 where
     S: SequenceNumber,
-    P: OrderedPacket<S>
+    P: OrderedPacket<S>,
 {
     /// Internal metrics
     metrics: ReorderRingBufferMetrics,
@@ -75,7 +75,6 @@ where
             reset_flag: false,
             _p: Default::default(),
         }
-        
     }
 }
 
@@ -214,7 +213,6 @@ where
     S: SequenceNumber,
     P: OrderedPacket<S>,
 {
-
     /// Reset the buffer and set the next sequence number to be read
     #[allow(unused)]
     pub fn reset(&mut self, s: S) {

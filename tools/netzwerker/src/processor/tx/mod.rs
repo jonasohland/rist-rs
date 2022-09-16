@@ -37,11 +37,7 @@ impl TxProcessor {
         );
         Ok(Self {
             tx,
-            job: tokio::task::spawn(util::processor_tracing_scope!(
-                "tx",
-                name,
-                state.run(rx)
-            )),
+            job: tokio::task::spawn(util::processor_tracing_scope!("tx", name, state.run(rx))),
         })
     }
 }

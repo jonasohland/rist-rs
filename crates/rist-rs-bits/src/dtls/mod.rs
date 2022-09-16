@@ -6,8 +6,8 @@ mod handshake;
 
 use core::fmt::Display;
 
-use rist_rs_core::internal::INTERNAL_ERR_PRE_VALIDATED;
 use error::Error;
+use rist_rs_core::internal::INTERNAL_ERR_PRE_VALIDATED;
 
 struct DTLSRecordView<'a> {
     data: &'a [u8],

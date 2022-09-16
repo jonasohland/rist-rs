@@ -6,14 +6,14 @@ use crate::{
     config::ProcessorConfigs,
     ctl::Controller,
     processor::{
-        generic,
+        delay::DelayProcessorState,
         drop::DropProcessorState,
-        rx, splitter,
+        generic, rx, splitter,
         traits::{
             ProcessorClientConnectInput, ProcessorClientLifecycle, ProcessorGetClient,
             ProcessorJoin,
         },
-        tx, Connector, Processor, ProcessorClient, delay::DelayProcessorState,
+        tx, Connector, Processor, ProcessorClient,
     },
 };
 
@@ -50,11 +50,17 @@ async fn build_processor(
                     .with_context(|| format!("failed to build tx processor {}", name))?,
             ),
             ProcessorConfigs::Drop(cfg) => generic::generic_processor!(
-                "drop", name.clone(), controller, DropProcessorState::new(name.to_owned(), cfg.clone())
+                "drop",
+                name.clone(),
+                controller,
+                DropProcessorState::new(name.to_owned(), cfg.clone())
             ),
             ProcessorConfigs::Delay(cfg) => generic::generic_processor!(
-                "delay", name.clone(), controller, DelayProcessorState::new(name.to_owned(), cfg.clone())
-            )
+                "delay",
+                name.clone(),
+                controller,
+                DelayProcessorState::new(name.to_owned(), cfg.clone())
+            ),
         },
     ))
 }
@@ -79,11 +85,8 @@ impl ProcessorHost {
         tracing::trace!("building new processor host");
         Ok(Self {
             processors: futures::future::join_all(configs.iter().map(|(name, cfg)| {
-                build_processor(controller.clone(), name.to_owned(), cfg).instrument(tracing::span!(
-                    tracing::Level::ERROR,
-                    "proc",
-                    ins = name
-                ))
+                build_processor(controller.clone(), name.to_owned(), cfg)
+                    .instrument(tracing::span!(tracing::Level::ERROR, "proc", ins = name))
             }))
             .await
             .into_iter()

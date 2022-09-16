@@ -3,7 +3,6 @@ pub mod general {
 
     #[derive(Debug, Clone, Copy)]
     pub enum ErrorKind {
-
         /// The given slice of data was empty
         Empty,
 
@@ -17,7 +16,6 @@ pub mod general {
     }
 
     impl Error {
-
         /// Get the kind of error for this error object
         pub fn kind(&self) -> ErrorKind {
             self.kind
@@ -41,7 +39,6 @@ pub mod general {
 
 #[derive(Debug)]
 pub enum Error {
-
     /// General error
     General(general::Error),
 

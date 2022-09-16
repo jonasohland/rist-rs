@@ -67,7 +67,12 @@ impl Controller {
             .send_err_ctx("Stop", "Controller")
     }
 
-    pub async fn connect(&self, destination: &str, label: &str, connector: Connector) -> Result<()> {
+    pub async fn connect(
+        &self,
+        destination: &str,
+        label: &str,
+        connector: Connector,
+    ) -> Result<()> {
         let (tx, rx) = oneshot::channel();
         self.tx
             .send(ControlMessage::Connect(
@@ -130,16 +135,17 @@ impl ControlProcessorState {
     ) -> result::Result<(), Vec<anyhow::Error>> {
         let mut errs = vec![];
         for (name, proc_client) in procs {
-            if let Err(e) = proc_client.build()
-                    .await
-                    .with_context(|| format!("failed to build processor '{}'", name)) {
-                        errs.push(e);
-                    }
+            if let Err(e) = proc_client
+                .build()
+                .await
+                .with_context(|| format!("failed to build processor '{}'", name))
+            {
+                errs.push(e);
+            }
         }
         if errs.is_empty() {
             Ok(())
-        }
-        else {
+        } else {
             Err(errs)
         }
     }
@@ -149,16 +155,17 @@ impl ControlProcessorState {
     ) -> result::Result<(), Vec<anyhow::Error>> {
         let mut errs = vec![];
         for (name, proc_client) in procs {
-            if let Err(e) = proc_client.start()
-                    .await
-                    .with_context(|| format!("failed to start processor '{}'", name)) {
-                        errs.push(e);
-                    }
+            if let Err(e) = proc_client
+                .start()
+                .await
+                .with_context(|| format!("failed to start processor '{}'", name))
+            {
+                errs.push(e);
+            }
         }
         if errs.is_empty() {
             Ok(())
-        }
-        else {
+        } else {
             Err(errs)
         }
     }

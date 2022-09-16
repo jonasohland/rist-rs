@@ -39,6 +39,6 @@ macro_rules! cfg_no_std {
 }
 
 pub use cfg_alloc;
-pub use cfg_std;
 pub use cfg_no_alloc;
 pub use cfg_no_std;
+pub use cfg_std;
