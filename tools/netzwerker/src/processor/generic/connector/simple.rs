@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use tokio::sync::mpsc::{channel, Receiver, Sender};
 
 use crate::{

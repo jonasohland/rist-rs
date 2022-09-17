@@ -1,17 +1,14 @@
-#![allow(unused)]
-
 pub mod connector;
 
 use std::marker::PhantomData;
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{anyhow, Result};
 use async_trait::async_trait;
 use tokio::select;
 use tokio::sync::{mpsc, oneshot};
-use tracing::{Event, Instrument};
+use tracing::Instrument;
 
 use crate::ctl::Controller;
-use crate::util;
 
 use super::{traits, Connector, ProcessorClient};
 
@@ -20,24 +17,24 @@ pub trait ProcessorImplementation<Event>: Send + Sync + Sized
 where
     Event: Send + Sync,
 {
-    async fn select(&mut self, ctl: &Controller) -> Option<Event> {
+    async fn select(&mut self, _ctl: &Controller) -> Option<Event> {
         futures::future::pending().await
     }
 
     async fn event(&mut self, e: Event);
 
-    async fn start(&mut self, ctl: &Controller) -> Result<()> {
+    async fn start(&mut self, _ctl: &Controller) -> Result<()> {
         Ok(())
     }
-    async fn stop(&mut self, ctl: &Controller) -> Result<()> {
-        Ok(())
-    }
-
-    async fn build(&mut self, ctl: &Controller) -> Result<()> {
+    async fn stop(&mut self, _ctl: &Controller) -> Result<()> {
         Ok(())
     }
 
-    async fn connect(&mut self, dest: &str, label: &str, input: Connector) -> Result<()> {
+    async fn build(&mut self, _ctl: &Controller) -> Result<()> {
+        Ok(())
+    }
+
+    async fn connect(&mut self, _dest: &str, _label: &str, _input: Connector) -> Result<()> {
         Err(anyhow!("this processor has no outputs to connect to"))
     }
 }
@@ -222,5 +219,3 @@ macro_rules! generic_processor {
 }
 
 pub use generic_processor;
-
-fn test() {}
