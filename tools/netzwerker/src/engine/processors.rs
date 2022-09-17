@@ -9,6 +9,7 @@ use crate::{
         delay::DelayProcessorState,
         drop::DropProcessorState,
         generic, rx, splitter,
+        throttle::ThrottleProcessorState,
         traits::{
             ProcessorClientConnectInput, ProcessorClientLifecycle, ProcessorGetClient,
             ProcessorJoin,
@@ -53,13 +54,25 @@ async fn build_processor(
                 "drop",
                 name.clone(),
                 controller,
-                DropProcessorState::new(name.to_owned(), cfg.clone())
+                DropProcessorState::new(name.to_owned(), cfg)
             ),
             ProcessorConfigs::Delay(cfg) => generic::generic_processor!(
                 "delay",
                 name.clone(),
                 controller,
-                DelayProcessorState::new(name.to_owned(), cfg.clone())
+                DelayProcessorState::new(name.to_owned(), cfg)
+            ),
+            ProcessorConfigs::ThrottleBits(cfg) => generic::generic_processor!(
+                "throttle",
+                name.clone(),
+                controller,
+                ThrottleProcessorState::new(name.to_owned(), cfg)
+            ),
+            ProcessorConfigs::ThrottlePackets(cfg) => generic::generic_processor!(
+                "throttle",
+                name.clone(),
+                controller,
+                ThrottleProcessorState::new(name.to_owned(), cfg)
             ),
         },
     ))

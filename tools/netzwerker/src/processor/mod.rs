@@ -3,6 +3,7 @@ pub mod drop;
 pub mod generic;
 pub mod rx;
 pub mod splitter;
+pub mod throttle;
 pub mod traits;
 pub mod tx;
 

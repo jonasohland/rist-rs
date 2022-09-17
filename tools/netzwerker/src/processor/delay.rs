@@ -44,9 +44,9 @@ pub struct DelayProcessorState {
 }
 
 impl DelayProcessorState {
-    pub fn new(name: String, cfg: Config) -> Self {
+    pub fn new(name: String, cfg: &Config) -> Self {
         Self {
-            cfg,
+            cfg: cfg.clone(),
             name: name.to_owned(),
             input: SimpleInput::new(&name, 1024),
             connectors: Default::default(),

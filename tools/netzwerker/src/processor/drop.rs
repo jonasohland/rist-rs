@@ -18,8 +18,11 @@ pub struct DropProcessorState {
 }
 
 impl DropProcessorState {
-    pub fn new(name: String, cfg: Config) -> Self {
-        Self { name, cfg }
+    pub fn new(name: String, cfg: &Config) -> Self {
+        Self {
+            name,
+            cfg: cfg.clone(),
+        }
     }
 }
 
