@@ -189,7 +189,7 @@ impl RxProcessor {
     /// Make a bound socket
     async fn make_sock(bind: &BindConfig) -> Result<UdpSocket> {
         let addr = SocketAddr::new(
-            match bind.addr {
+            match bind.address {
                 None => "::".parse().unwrap(),
                 Some(addr) => addr,
             },

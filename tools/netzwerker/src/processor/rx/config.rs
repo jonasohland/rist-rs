@@ -12,7 +12,7 @@ enum SocketOption {
 #[derive(Debug, Deserialize, Clone)]
 pub struct BindConfig {
     pub port: u16,
-    pub addr: Option<IpAddr>,
+    pub address: Option<IpAddr>,
 }
 
 #[derive(Debug, Deserialize)]
