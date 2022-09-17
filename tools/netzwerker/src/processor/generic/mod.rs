@@ -26,9 +26,16 @@ where
 
     async fn event(&mut self, e: Event);
 
-    async fn start(&mut self, ctl: &Controller) -> Result<()>;
-    async fn stop(&mut self, ctl: &Controller) -> Result<()>;
-    async fn build(&mut self, ctl: &Controller) -> Result<()>;
+    async fn start(&mut self, ctl: &Controller) -> Result<()> {
+        Ok(())
+    }
+    async fn stop(&mut self, ctl: &Controller) -> Result<()> {
+        Ok(())
+    }
+
+    async fn build(&mut self, ctl: &Controller) -> Result<()> {
+        Ok(())
+    }
 
     async fn connect(&mut self, dest: &str, label: &str, input: Connector) -> Result<()> {
         Err(anyhow!("this processor has no outputs to connect to"))

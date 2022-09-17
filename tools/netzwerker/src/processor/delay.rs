@@ -86,14 +86,6 @@ impl ProcessorImplementation<DelayEvent> for DelayProcessorState {
         }
     }
 
-    async fn start(&mut self, _ctl: &Controller) -> Result<()> {
-        Ok(())
-    }
-
-    async fn stop(&mut self, _ctl: &Controller) -> Result<()> {
-        Ok(())
-    }
-
     async fn build(&mut self, ctl: &Controller) -> Result<()> {
         for input in &self.cfg.inputs {
             tracing::debug!(input, "connect input");

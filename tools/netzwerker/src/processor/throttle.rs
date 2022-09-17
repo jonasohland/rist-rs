@@ -10,14 +10,14 @@ use serde::Deserialize;
 #[derive(Deserialize, Debug, Clone)]
 pub struct ConfigPackets {
     inputs: Vec<String>,
-    bps: u64,
+    pps: u64,
     max_burst: Option<u64>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
 pub struct ConfigBits {
     inputs: Vec<String>,
-    pps: u64,
+    bps: u64,
     max_burst: Option<u64>,
 }
 
@@ -97,14 +97,6 @@ impl ProcessorImplementation<ThrottleEvent> for ThrottleProcessorState {
             ThrottleState::Packets(state) => state.select(&mut self.input).await,
             ThrottleState::Bits(state) => state.select(&mut self.input).await,
         })
-    }
-
-    async fn start(&mut self, _ctl: &Controller) -> Result<()> {
-        Ok(())
-    }
-
-    async fn stop(&mut self, _ctl: &Controller) -> Result<()> {
-        Ok(())
     }
 
     async fn build(&mut self, ctl: &Controller) -> Result<()> {
