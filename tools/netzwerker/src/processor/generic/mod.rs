@@ -147,6 +147,7 @@ where
     }
 
     pub async fn run(mut self, mut rx: mpsc::UnboundedReceiver<GenericProcessorEvent>) {
+        tracing::debug!("running");
         loop {
             if let Some(event) = select! {
                 opt_event = rx.recv() => {
@@ -188,6 +189,7 @@ where
                 }
             }
         }
+        tracing::debug!("done");
     }
 }
 
