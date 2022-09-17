@@ -61,7 +61,7 @@ impl Error {
         matches!(self, Error::V4(_))
     }
 
-    /// True is the error is Ipv6-related error
+    /// True if the error is Ipv6-related error
     fn is_v6(&self) -> bool {
         matches!(self, Error::V6())
     }
