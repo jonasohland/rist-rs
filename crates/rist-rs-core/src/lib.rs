@@ -21,7 +21,6 @@ mod proto;
 
 pub mod util;
 
-#[cfg(feature = "alloc")]
-pub mod static_vec;
-
 pub mod traits;
+
+pub mod collections;

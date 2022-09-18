@@ -1,7 +1,7 @@
 use rist_rs_bits::rtp::{error::Error as RTPError, RTPView};
 use rist_rs_buffers::reorder::ring::ReorderRingBuffer;
 use rist_rs_core::{
-    static_vec::StaticVec,
+    collections::static_vec::StaticVec,
     traits::{
         packet::seq::OrderedPacket,
         queue::reorder::{ReorderQueueEvent, ReorderQueueInput, ReorderQueueOutput},

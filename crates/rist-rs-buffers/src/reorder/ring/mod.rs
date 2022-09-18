@@ -3,7 +3,7 @@
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 use rist_rs_core::{
-    static_vec::StaticVec,
+    collections::static_vec::StaticVec,
     traits::{
         packet::seq::{OrderedPacket, SequenceNumber},
         queue::reorder::{ReorderQueueEvent, ReorderQueueInput, ReorderQueueOutput},
