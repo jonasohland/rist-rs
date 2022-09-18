@@ -7,7 +7,7 @@ use crate::{ctl::Controller, packet::Packet, util};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 pub use config::Config;
-use rist_rs_core::static_vec::StaticVec;
+use rist_rs_core::collections::static_vec::StaticVec;
 use std::{
     net::{IpAddr, SocketAddr},
     result,
