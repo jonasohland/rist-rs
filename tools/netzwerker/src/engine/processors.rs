@@ -9,7 +9,7 @@ use crate::{
         delay::DelayProcessorState,
         drop::DropProcessorState,
         generic, rx, splitter,
-        throttle::ThrottleProcessorState,
+        tbf::TBFProcessorState,
         traits::{
             ProcessorClientConnectInput, ProcessorClientLifecycle, ProcessorGetClient,
             ProcessorJoin,
@@ -62,17 +62,17 @@ async fn build_processor(
                 controller,
                 DelayProcessorState::new(name.to_owned(), cfg)
             ),
-            ProcessorConfigs::ThrottleBits(cfg) => generic::generic_processor!(
-                "throttle",
+            ProcessorConfigs::TbfBits(cfg) => generic::generic_processor!(
+                "tbf-bits",
                 name.clone(),
                 controller,
-                ThrottleProcessorState::new(name.to_owned(), cfg)
+                TBFProcessorState::new(name.to_owned(), cfg)
             ),
-            ProcessorConfigs::ThrottlePackets(cfg) => generic::generic_processor!(
-                "throttle",
+            ProcessorConfigs::TbfPackets(cfg) => generic::generic_processor!(
+                "tbf-packets",
                 name.clone(),
                 controller,
-                ThrottleProcessorState::new(name.to_owned(), cfg)
+                TBFProcessorState::new(name.to_owned(), cfg)
             ),
         },
     ))

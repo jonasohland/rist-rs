@@ -4,12 +4,18 @@ threads = 16
 type = "rx"
 bind = { addr = "127.0.0.1", port = 9939 }
 
-[proc.delay]
-type = "delay"
+[proc.tbf]
 inputs = [ "rx_1" ]
-delay = 5000
+type = "tbf-bits"
+max_burst = 200
+size = 400_000
+bps = 1_100_000
 
 [proc.tx_1]
 type = "tx"
-inputs = [ "delay" ]
+inputs = [ "tbf" ]
 send = { address = "127.0.0.1", port = 9999 }
+
+[proc.drop]
+inputs = []
+type = "drop"

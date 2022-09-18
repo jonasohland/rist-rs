@@ -38,13 +38,13 @@ pub struct ConfigCommon {
 }
 
 pub trait Config {
-    fn init(&self) -> ThrottleState;
+    fn init(&self) -> TBFState;
     fn common(&self) -> ConfigCommon;
 }
 
 impl Config for ConfigPackets {
-    fn init(&self) -> ThrottleState {
-        ThrottleState::Packets(ThrottleStatePackets {
+    fn init(&self) -> TBFState {
+        TBFState::Packets(TBFStatePackets {
             queue: StaticVecDeque::new(self.common().max_burst as usize),
             credit_counter: CreditCounter::new(self.pps, self.size),
             next_packet_in: None,
@@ -59,8 +59,8 @@ impl Config for ConfigPackets {
 }
 
 impl Config for ConfigBits {
-    fn init(&self) -> ThrottleState {
-        ThrottleState::Bits(ThrottleStateBits {
+    fn init(&self) -> TBFState {
+        TBFState::Bits(TBFStateBits {
             queue: StaticVecDeque::new(self.common().max_burst as usize),
             credit_counter: CreditCounter::new(self.bps, self.size),
             next_packet_in: None,
@@ -74,37 +74,37 @@ impl Config for ConfigBits {
     }
 }
 
-pub struct ThrottleStatePackets {
+pub struct TBFStatePackets {
     queue: StaticVecDeque<Packet>,
     credit_counter: CreditCounter,
     next_packet_in: Option<Duration>,
 }
 
-pub struct ThrottleStateBits {
+pub struct TBFStateBits {
     queue: StaticVecDeque<Packet>,
     credit_counter: CreditCounter,
     next_packet_in: Option<Duration>,
 }
 
-pub enum ThrottleState {
-    Packets(ThrottleStatePackets),
-    Bits(ThrottleStateBits),
+pub enum TBFState {
+    Packets(TBFStatePackets),
+    Bits(TBFStateBits),
 }
 
-pub struct ThrottleProcessorState {
+pub struct TBFProcessorState {
     name: String,
     input: SimpleInput,
     connectors: NamedCollectorCollection,
     cfg: ConfigCommon,
-    throttle: ThrottleState,
+    throttle: TBFState,
 }
 
-pub enum ThrottleEvent {
+pub enum TBFEvent {
     Packet(Packet),
     Wake,
 }
 
-impl ThrottleProcessorState {
+impl TBFProcessorState {
     pub fn new(name: String, cfg: &impl Config) -> Self {
         Self {
             name: name.to_owned(),
@@ -117,11 +117,11 @@ impl ThrottleProcessorState {
 }
 
 #[async_trait::async_trait]
-impl ProcessorImplementation<ThrottleEvent> for ThrottleProcessorState {
-    async fn select(&mut self, _ctl: &Controller) -> Option<ThrottleEvent> {
+impl ProcessorImplementation<TBFEvent> for TBFProcessorState {
+    async fn select(&mut self, _ctl: &Controller) -> Option<TBFEvent> {
         Some(match &mut self.throttle {
-            ThrottleState::Packets(state) => state.select(&mut self.input).await,
-            ThrottleState::Bits(state) => state.select(&mut self.input).await,
+            TBFState::Packets(state) => state.select(&mut self.input).await,
+            TBFState::Bits(state) => state.select(&mut self.input).await,
         })
     }
 
@@ -138,22 +138,22 @@ impl ProcessorImplementation<ThrottleEvent> for ThrottleProcessorState {
         self.connectors.connect(dest, label, connector)
     }
 
-    async fn event(&mut self, event: ThrottleEvent) {
+    async fn event(&mut self, event: TBFEvent) {
         match &mut self.throttle {
-            ThrottleState::Packets(state) => state.process(event, &mut self.connectors),
-            ThrottleState::Bits(state) => state.process(event, &mut self.connectors),
+            TBFState::Packets(state) => state.process(event, &mut self.connectors),
+            TBFState::Bits(state) => state.process(event, &mut self.connectors),
         }
     }
 }
 
-impl ThrottleStateBits {
-    async fn select(&mut self, input: &mut SimpleInput) -> ThrottleEvent {
+impl TBFStateBits {
+    async fn select(&mut self, input: &mut SimpleInput) -> TBFEvent {
         match self.next_packet_in.take() {
             Some(duration) => select! {
-                packet = input.receive() => ThrottleEvent::Packet(packet),
-                _ = sleep(duration) => ThrottleEvent::Wake
+                packet = input.receive() => TBFEvent::Packet(packet),
+                _ = sleep(duration) => TBFEvent::Wake
             },
-            None => ThrottleEvent::Packet(input.receive().await),
+            None => TBFEvent::Packet(input.receive().await),
         }
     }
 
@@ -177,9 +177,9 @@ impl ThrottleStateBits {
         }
     }
 
-    fn process(&mut self, event: ThrottleEvent, connectors: &mut NamedCollectorCollection) {
+    fn process(&mut self, event: TBFEvent, connectors: &mut NamedCollectorCollection) {
         self.credit_counter.update();
-        if let ThrottleEvent::Packet(packet) = event {
+        if let TBFEvent::Packet(packet) = event {
             self.enqueue(packet, connectors);
         }
         self.dequeue_and_send(connectors);
@@ -201,14 +201,14 @@ impl ThrottleStateBits {
     }
 }
 
-impl ThrottleStatePackets {
-    async fn select(&mut self, input: &mut SimpleInput) -> ThrottleEvent {
+impl TBFStatePackets {
+    async fn select(&mut self, input: &mut SimpleInput) -> TBFEvent {
         match self.next_packet_in.take() {
             Some(duration) => select! {
-                packet = input.receive() => ThrottleEvent::Packet(packet),
-                _ = sleep(duration) => ThrottleEvent::Wake
+                packet = input.receive() => TBFEvent::Packet(packet),
+                _ = sleep(duration) => TBFEvent::Wake
             },
-            None => ThrottleEvent::Packet(input.receive().await),
+            None => TBFEvent::Packet(input.receive().await),
         }
     }
 
@@ -229,9 +229,9 @@ impl ThrottleStatePackets {
         }
     }
 
-    fn process(&mut self, event: ThrottleEvent, connectors: &mut NamedCollectorCollection) {
+    fn process(&mut self, event: TBFEvent, connectors: &mut NamedCollectorCollection) {
         self.credit_counter.update();
-        if let ThrottleEvent::Packet(packet) = event {
+        if let TBFEvent::Packet(packet) = event {
             self.enqueue(packet, connectors);
         }
         self.dequeue_and_send(connectors);
