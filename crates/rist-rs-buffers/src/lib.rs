@@ -11,3 +11,5 @@ pub mod reorder;
 
 /// Rist-specific Buffers
 pub mod rist;
+
+pub mod channel;
