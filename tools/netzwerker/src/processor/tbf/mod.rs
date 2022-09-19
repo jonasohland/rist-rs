@@ -7,7 +7,9 @@ use crate::{
     ctl::Controller, engine::processors::DEFAULT_OUTPUT_LABEL, packet::Packet, processor::Connector,
 };
 use anyhow::Result;
-use rist_rs_core::collections::static_vec_deque::StaticVecDeque;
+use rist_rs_core::{
+    collections::static_vec_deque::StaticVecDeque, util::num::dec_spec::ser_de::DecSpecInt,
+};
 use serde::Deserialize;
 use std::time::Duration;
 use tokio::{select, time::sleep};
@@ -19,7 +21,7 @@ const MAX_BURST_DEFAULT: u64 = 1000;
 #[derive(Deserialize, Debug, Clone)]
 pub struct ConfigPackets {
     inputs: Vec<String>,
-    pps: u64,
+    pps: DecSpecInt<u64>,
     size: u64,
     max_burst: Option<u64>,
 }
@@ -27,7 +29,7 @@ pub struct ConfigPackets {
 #[derive(Deserialize, Debug, Clone)]
 pub struct ConfigBits {
     inputs: Vec<String>,
-    bps: u64,
+    bps: DecSpecInt<u64>,
     size: u64,
     max_burst: Option<u64>,
 }
@@ -46,7 +48,7 @@ impl Config for ConfigPackets {
     fn init(&self) -> TBFState {
         TBFState::Packets(TBFStatePackets {
             queue: StaticVecDeque::new(self.common().max_burst as usize),
-            credit_counter: CreditCounter::new(self.pps, self.size),
+            credit_counter: CreditCounter::new(self.pps.get(), self.size),
             next_packet_in: None,
         })
     }
@@ -62,7 +64,7 @@ impl Config for ConfigBits {
     fn init(&self) -> TBFState {
         TBFState::Bits(TBFStateBits {
             queue: StaticVecDeque::new(self.common().max_burst as usize),
-            credit_counter: CreditCounter::new(self.bps, self.size),
+            credit_counter: CreditCounter::new(self.bps.get(), self.size),
             next_packet_in: None,
         })
     }

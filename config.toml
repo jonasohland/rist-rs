@@ -5,15 +5,15 @@ type = "rx"
 bind = { addr = "127.0.0.1", port = 9939 }
 
 [proc.tbf]
-inputs = [ "rx_1" ]
+inputs = ["rx_1"]
 type = "tbf-bits"
 max_burst = 200
 size = 400_000
-bps = 1_100_000
+bps = 1
 
 [proc.tx_1]
 type = "tx"
-inputs = [ "tbf" ]
+inputs = ["tbf"]
 send = { address = "127.0.0.1", port = 9999 }
 
 [proc.drop]
