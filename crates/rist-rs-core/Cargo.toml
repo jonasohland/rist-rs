@@ -8,8 +8,13 @@ rist-rs-macros = { path = "../rist-rs-macros" }
 log = "0.3"
 num-traits = { version = "0.2", default-features = false }
 bytes = { version = "1.1", default-features = false }
+serde = { version = "1.0", features = ["derive"], optional = true }
+
+[dev-dependencies]
+serde_json = "1.0"
 
 [features]
-default = ["alloc", "std"]
+default = ["alloc", "std", "serde"]
 alloc = []
 std = []
+serde = ["dep:serde"]

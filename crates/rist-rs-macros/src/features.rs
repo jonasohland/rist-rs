@@ -38,7 +38,29 @@ macro_rules! cfg_no_std {
     };
 }
 
+#[macro_export]
+macro_rules! cfg_serde {
+    ($($m:item)*) => {
+        $(
+            #[cfg(feature = "serde")]
+            $m
+        )*
+    };
+}
+
+#[macro_export]
+macro_rules! cfg_no_serde {
+    ($($m:item)*) => {
+        $(
+            #[cfg(not(feature = "serde"))]
+            $m
+        )*
+    };
+}
+
 pub use cfg_alloc;
 pub use cfg_no_alloc;
+pub use cfg_no_serde;
 pub use cfg_no_std;
+pub use cfg_serde;
 pub use cfg_std;

@@ -539,6 +539,8 @@ dependencies = [
  "log 0.3.9",
  "num-traits",
  "rist-rs-macros",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
