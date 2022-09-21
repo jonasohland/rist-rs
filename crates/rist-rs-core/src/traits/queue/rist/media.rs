@@ -22,7 +22,6 @@ where
     Clk: Clock,
     TimestampPrim: MediaTimestampPrimitive,
     TimebasePrim: RationalPrimitive,
-    f64: From<TimebasePrim>,
 {
     /// Enqueue a packet
     fn enqueue(&mut self, packet: Packet) -> EnqueueResult<Packet>;
