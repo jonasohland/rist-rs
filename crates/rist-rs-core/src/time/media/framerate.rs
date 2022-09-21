@@ -1,23 +1,13 @@
-use super::timebase::{MediaTimebase, MediaTimebasePrimitive};
-use crate::traits::math::numbers::{Rational, RationalExt};
-use num_traits::Num;
-
-pub trait MediaFrameratePrimitive: Num + Copy + PartialOrd + Into<f64> {}
-
-impl<T> MediaFrameratePrimitive for T
-where
-    T: Num + Copy + PartialOrd,
-    f64: From<T>,
-{
-}
+use super::timebase::MediaTimebase;
+use crate::traits::math::numbers::{Rational, RationalExt, RationalPrimitive};
 
 pub trait MediaFramerate<T>: Rational<T> + Sized
 where
-    T: MediaFrameratePrimitive,
+    T: RationalPrimitive,
 {
     fn make_timebase<Rep, K>(&self) -> Rep
     where
-        K: MediaTimebasePrimitive + PartialOrd,
+        K: RationalPrimitive + PartialOrd,
         Rep: MediaTimebase<K> + RationalExt<T>,
     {
         Rep::from((self.numerator(), self.denominator())).reciprocal()
@@ -26,21 +16,21 @@ where
 
 impl<T, K> MediaFramerate<T> for K
 where
-    T: MediaFrameratePrimitive,
+    T: RationalPrimitive,
     K: Rational<T>,
 {
 }
 
 impl<T, K> MediaFramerateExt<T> for K
 where
-    T: MediaFrameratePrimitive,
+    T: RationalPrimitive,
     K: RationalExt<T>,
 {
 }
 
 pub trait MediaFramerateExt<T>: MediaFramerate<T> + RationalExt<T>
 where
-    T: MediaFrameratePrimitive + Copy,
+    T: RationalPrimitive,
 {
     fn to_timebase(self) -> Self {
         self.reciprocal()

@@ -1,6 +1,7 @@
 use crate::{
-    time::media::{timebase::MediaTimebasePrimitive, timestamp::MediaTimestampPrimitive},
+    time::media::timestamp::MediaTimestampPrimitive,
     traits::{
+        math::numbers::RationalPrimitive,
         packet::{rist::RistMediaPacket, seq::SequenceNumber},
         time::clock::Clock,
     },
@@ -20,7 +21,7 @@ where
     Packet: RistMediaPacket<Seq, TimestampPrim, TimebasePrim>,
     Clk: Clock,
     TimestampPrim: MediaTimestampPrimitive,
-    TimebasePrim: MediaTimebasePrimitive,
+    TimebasePrim: RationalPrimitive,
     f64: From<TimebasePrim>,
 {
     /// Enqueue a packet

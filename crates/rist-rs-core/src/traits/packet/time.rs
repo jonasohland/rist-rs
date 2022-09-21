@@ -1,12 +1,12 @@
-use crate::time::media::{
-    timebase::MediaTimebasePrimitive,
-    timestamp::{ConvertibleMediaTimestamp, MediaTimestamp, MediaTimestampPrimitive},
+use crate::{
+    time::media::timestamp::{ConvertibleMediaTimestamp, MediaTimestamp, MediaTimestampPrimitive},
+    traits::math::numbers::RationalPrimitive,
 };
 
 pub trait TimedPacket<TimestampPrim, TimebasePrim>
 where
     TimestampPrim: MediaTimestampPrimitive,
-    TimebasePrim: MediaTimebasePrimitive,
+    TimebasePrim: RationalPrimitive,
 {
     /// Returns the MediaTimestamp of the packet
     fn media_timestamp(&self) -> MediaTimestamp<TimestampPrim>;

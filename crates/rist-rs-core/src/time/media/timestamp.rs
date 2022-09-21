@@ -1,19 +1,19 @@
 use core::fmt::Display;
 
 use num_traits::FromPrimitive;
-use num_traits::Num;
+use num_traits::PrimInt;
 
 use crate::time::rate::Rate;
 use crate::traits::math::numbers::Rational;
+use crate::traits::math::numbers::RationalPrimitive;
 
 use super::timebase::MediaTimebase;
-use super::timebase::MediaTimebasePrimitive;
 
-pub trait MediaTimestampPrimitive: Num + Copy + PartialOrd + Into<f64> {}
+pub trait MediaTimestampPrimitive: PrimInt + Into<f64> {}
 
 impl<T> MediaTimestampPrimitive for T
 where
-    T: Num + Copy + PartialOrd,
+    T: PrimInt,
     f64: From<T>,
 {
 }
@@ -37,7 +37,7 @@ where
 pub struct ConvertibleMediaTimestamp<T, B>
 where
     T: MediaTimestampPrimitive,
-    B: MediaTimebasePrimitive,
+    B: RationalPrimitive,
 {
     ts: MediaTimestamp<T>,
     time_base: Rate<B>,
@@ -60,7 +60,7 @@ where
 impl<T, B> ConvertibleMediaTimestamp<T, B>
 where
     T: MediaTimestampPrimitive + FromPrimitive,
-    B: MediaTimebasePrimitive,
+    B: RationalPrimitive,
 {
     pub fn new(ts: MediaTimestamp<T>, time_base: impl Rational<B>) -> Self {
         Self {

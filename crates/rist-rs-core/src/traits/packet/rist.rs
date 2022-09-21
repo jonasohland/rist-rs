@@ -1,4 +1,6 @@
-use crate::time::media::{timebase::MediaTimebasePrimitive, timestamp::MediaTimestampPrimitive};
+use crate::{
+    time::media::timestamp::MediaTimestampPrimitive, traits::math::numbers::RationalPrimitive,
+};
 
 use super::{
     seq::{OrderedPacket, SequenceNumber},
@@ -10,7 +12,6 @@ pub trait RistMediaPacket<Seq, TimestampPrim, TimebasePrim>:
 where
     Seq: SequenceNumber,
     TimestampPrim: MediaTimestampPrimitive,
-    TimebasePrim: MediaTimebasePrimitive,
-    f64: From<TimebasePrim>,
+    TimebasePrim: RationalPrimitive,
 {
 }

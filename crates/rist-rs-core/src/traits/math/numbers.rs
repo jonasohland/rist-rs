@@ -1,5 +1,14 @@
 use num_traits::Num;
 
+pub trait RationalPrimitive: Num + Copy + PartialOrd + Into<f64> {}
+
+impl<T> RationalPrimitive for T
+where
+    T: Num + Copy + PartialOrd,
+    f64: From<T>,
+{
+}
+
 pub trait Rational<T>
 where
     T: Num,

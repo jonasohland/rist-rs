@@ -1,26 +1,17 @@
 use super::{
-    framerate::{MediaFramerate, MediaFrameratePrimitive},
+    framerate::MediaFramerate,
     timestamp::{MediaTimestamp, MediaTimestampPrimitive},
 };
-use crate::traits::math::numbers::{Rational, RationalExt};
-use num_traits::{FromPrimitive, Num};
-
-pub trait MediaTimebasePrimitive: Num + Copy + PartialOrd + Into<f64> {}
-
-impl<T> MediaTimebasePrimitive for T
-where
-    T: Num + Copy + PartialOrd,
-    f64: From<T>,
-{
-}
+use crate::traits::math::numbers::{Rational, RationalExt, RationalPrimitive};
+use num_traits::FromPrimitive;
 
 pub trait MediaTimebase<T>: Rational<T>
 where
-    T: MediaTimebasePrimitive,
+    T: RationalPrimitive,
 {
     fn make_framerate<Rep, K>(&self) -> Rep
     where
-        K: MediaFrameratePrimitive,
+        K: RationalPrimitive,
         Rep: MediaFramerate<K> + RationalExt<T>,
     {
         Rep::from((self.numerator(), self.denominator())).reciprocal()
@@ -73,7 +64,7 @@ where
 
 pub trait MediaTimebaseExt<T>: MediaTimebase<T> + RationalExt<T>
 where
-    T: MediaTimebasePrimitive,
+    T: RationalPrimitive,
 {
     fn to_framerate(&self) -> Self {
         self.reciprocal()
@@ -82,14 +73,14 @@ where
 
 impl<T, K> MediaTimebase<T> for K
 where
-    T: MediaTimebasePrimitive,
+    T: RationalPrimitive,
     K: Rational<T>,
 {
 }
 
 impl<T, K> MediaTimebaseExt<T> for K
 where
-    T: MediaTimebasePrimitive,
+    T: RationalPrimitive,
     K: RationalExt<T>,
 {
 }
