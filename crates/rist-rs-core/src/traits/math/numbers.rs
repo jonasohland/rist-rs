@@ -11,21 +11,30 @@ where
 
 pub trait Rational<T>
 where
-    T: Num,
+    T: RationalPrimitive,
 {
     fn numerator(&self) -> T;
     fn denominator(&self) -> T;
+
+    fn to_f64(&self) -> f64 {
+        self.numerator().into() / self.denominator().into()
+    }
+
+    fn to_f64_checked(&self) -> Option<f64> {
+        let n = self.to_f64();
+        n.is_finite().then_some(n)
+    }
 }
 
 pub trait MakeRational<T>: From<(T, T)>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
 }
 
 pub trait RationalExt<T>: Rational<T> + MakeRational<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
     fn reciprocal(&self) -> Self {
         Self::from((self.denominator(), self.numerator()))
@@ -34,7 +43,7 @@ where
 
 impl<T> Rational<T> for T
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
     fn numerator(&self) -> T {
         *self
@@ -48,13 +57,13 @@ where
 impl<T, K> MakeRational<T> for K
 where
     K: Rational<T> + From<(T, T)>,
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
 }
 
 impl<T, K> RationalExt<T> for K
 where
     K: Rational<T> + MakeRational<T>,
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
 }

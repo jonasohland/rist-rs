@@ -1,11 +1,10 @@
-use crate::traits::math::numbers::Rational;
+use crate::traits::math::numbers::{Rational, RationalPrimitive};
 use core::{cmp::Ordering, fmt::Display};
-use num_traits::{float::FloatCore, Num};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
     pub num: T,
     pub den: T,
@@ -13,7 +12,7 @@ where
 
 impl<T> From<(T, T)> for Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
     fn from(rat: (T, T)) -> Self {
         Self {
@@ -25,7 +24,7 @@ where
 
 impl<T> From<T> for Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
     T: Rational<T>,
 {
     fn from(v: T) -> Self {
@@ -35,7 +34,7 @@ where
 
 impl<T> Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
     pub fn new<K>(rational: K) -> Self
     where
@@ -54,49 +53,32 @@ where
 
 impl<T> Display for Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
     T: Display,
     f64: From<T>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "{:.2}", self.as_float::<f64>())
-    }
-}
-
-impl<T> Rate<T>
-where
-    T: Num + Copy,
-{
-    pub fn as_float<K: FloatCore>(&self) -> K
-    where
-        K: From<T>,
-    {
-        if self.den == T::zero() {
-            K::zero()
-        } else {
-            <K as From<T>>::from(self.num) / <K as From<T>>::from(self.den)
-        }
+        write!(f, "{:.2}", self.to_f64())
     }
 }
 
 impl<T> PartialEq for Rate<T>
 where
-    T: Num + Copy,
-    T: PartialOrd,
+    T: RationalPrimitive,
     T: Into<f64>,
 {
     fn eq(&self, other: &Self) -> bool {
         if self.denominator() == T::zero() || other.denominator() == T::zero() {
             false
         } else {
-            (self.num.into() / self.den.into()) == (other.num.into() / other.den.into())
+            self.to_f64() == other.to_f64()
         }
     }
 }
 
 impl<T> Eq for Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
     T: PartialOrd,
     T: Into<f64>,
 {
@@ -104,7 +86,7 @@ where
 
 impl<T> PartialOrd for Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
     T: PartialOrd,
     f64: From<T>,
 {
@@ -114,7 +96,7 @@ where
         } else if self.den == other.den {
             self.num.partial_cmp(&other.num)
         } else {
-            self.as_float::<f64>().partial_cmp(&other.as_float::<f64>())
+            self.to_f64().partial_cmp(&other.to_f64())
         }
     }
 }
@@ -126,7 +108,7 @@ mod test {
     #[test]
     fn zero_rate() {
         let rate = Rate::from((1234, 0));
-        assert_eq!(rate.as_float::<f64>(), 0.);
+        assert!(matches!(rate.to_f64_checked(), None));
     }
 
     #[test]
@@ -147,7 +129,7 @@ mod test {
 
 impl<T> Rational<T> for Rate<T>
 where
-    T: Num + Copy,
+    T: RationalPrimitive,
 {
     fn numerator(&self) -> T {
         self.num
