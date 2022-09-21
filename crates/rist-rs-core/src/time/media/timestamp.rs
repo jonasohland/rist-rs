@@ -40,7 +40,8 @@ where
     B: RationalPrimitive,
 {
     ts: MediaTimestamp<T>,
-    time_base: Rate<B>,
+    timebase: Rate<B>,
+    framerate: Rate<B>,
 }
 
 impl<T> MediaTimestamp<T>
@@ -62,30 +63,35 @@ where
     T: MediaTimestampPrimitive + FromPrimitive,
     B: RationalPrimitive,
 {
-    pub fn new(ts: MediaTimestamp<T>, time_base: impl Rational<B>) -> Self {
+    pub fn new(
+        ts: MediaTimestamp<T>,
+        timebase: impl Rational<B>,
+        framerate: impl Rational<B>,
+    ) -> Self {
         Self {
             ts,
-            time_base: Rate::new(time_base),
+            timebase: Rate::new(timebase),
+            framerate: Rate::new(framerate),
         }
     }
 
     #[allow(unused)]
     fn to_timebase_unchecked(self, timebase: impl MediaTimebase<B> + Copy) -> Self {
         Self {
-            ts: self
-                .time_base
-                .convert_timestamp_unchecked(self.ts, timebase),
-            time_base: Rate::new(timebase),
+            ts: self.timebase.convert_timestamp_unchecked(self.ts, timebase),
+            timebase: Rate::new(timebase),
+            framerate: self.framerate,
         }
     }
 
     #[allow(unused)]
     fn to_timebase(self, timebase: impl MediaTimebase<B> + Copy) -> Option<Self> {
-        self.time_base
+        self.timebase
             .convert_timestamp(self.ts, timebase)
             .map(|ts| Self {
                 ts,
-                time_base: Rate::new(timebase),
+                timebase: Rate::new(timebase),
+                framerate: self.framerate,
             })
     }
 }
