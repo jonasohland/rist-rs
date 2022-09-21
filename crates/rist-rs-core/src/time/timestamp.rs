@@ -1,18 +1,18 @@
 use core::fmt::Display;
 
-use num_traits::int::PrimInt;
 use num_traits::FromPrimitive;
+use num_traits::Num;
 
 use crate::traits::math::numbers::Rational;
 
 use super::timebase::MediaTimebasePrimitive;
 use super::{rate::Rate, timebase::MediaTimebase};
 
-pub trait MediaTimestampPrimitive: PrimInt + Into<f64> {}
+pub trait MediaTimestampPrimitive: Num + Copy + PartialOrd + Into<f64> {}
 
 impl<T> MediaTimestampPrimitive for T
 where
-    T: PrimInt,
+    T: Num + Copy + PartialOrd,
     f64: From<T>,
 {
 }

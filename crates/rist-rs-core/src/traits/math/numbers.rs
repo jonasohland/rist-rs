@@ -1,8 +1,8 @@
-use num_traits::PrimInt;
+use num_traits::Num;
 
 pub trait Rational<T>
 where
-    T: PrimInt,
+    T: Num,
 {
     fn numerator(&self) -> T;
     fn denominator(&self) -> T;
@@ -10,13 +10,13 @@ where
 
 pub trait MakeRational<T>: From<(T, T)>
 where
-    T: PrimInt + Copy,
+    T: Num + Copy,
 {
 }
 
 pub trait RationalExt<T>: Rational<T> + MakeRational<T>
 where
-    T: PrimInt + Copy,
+    T: Num + Copy,
 {
     fn reciprocal(&self) -> Self {
         Self::from((self.denominator(), self.numerator()))
@@ -25,7 +25,7 @@ where
 
 impl<T> Rational<T> for T
 where
-    T: PrimInt,
+    T: Num + Copy,
 {
     fn numerator(&self) -> T {
         *self
@@ -39,13 +39,13 @@ where
 impl<T, K> MakeRational<T> for K
 where
     K: Rational<T> + From<(T, T)>,
-    T: PrimInt,
+    T: Num + Copy,
 {
 }
 
 impl<T, K> RationalExt<T> for K
 where
     K: Rational<T> + MakeRational<T>,
-    T: PrimInt,
+    T: Num + Copy,
 {
 }

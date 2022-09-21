@@ -1,11 +1,11 @@
 use crate::traits::math::numbers::Rational;
 use core::{cmp::Ordering, fmt::Display};
-use num_traits::{float::FloatCore, PrimInt};
+use num_traits::{float::FloatCore, Num};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug)]
 pub struct Rate<T>
 where
-    T: PrimInt,
+    T: Num + Copy,
 {
     pub num: T,
     pub den: T,
@@ -13,7 +13,7 @@ where
 
 impl<T> From<(T, T)> for Rate<T>
 where
-    T: PrimInt,
+    T: Num + Copy,
 {
     fn from(rat: (T, T)) -> Self {
         Self {
@@ -25,7 +25,7 @@ where
 
 impl<T> From<T> for Rate<T>
 where
-    T: PrimInt + Copy,
+    T: Num + Copy,
     T: Rational<T>,
 {
     fn from(v: T) -> Self {
@@ -35,7 +35,7 @@ where
 
 impl<T> Rate<T>
 where
-    T: PrimInt,
+    T: Num + Copy,
 {
     pub fn new<K>(rational: K) -> Self
     where
@@ -54,7 +54,7 @@ where
 
 impl<T> Display for Rate<T>
 where
-    T: PrimInt,
+    T: Num + Copy,
     T: Display,
     f64: From<T>,
 {
@@ -65,7 +65,7 @@ where
 
 impl<T> Rate<T>
 where
-    T: PrimInt,
+    T: Num + Copy,
 {
     pub fn as_float<K: FloatCore>(&self) -> K
     where
@@ -79,9 +79,32 @@ where
     }
 }
 
+impl<T> PartialEq for Rate<T>
+where
+    T: Num + Copy,
+    T: PartialOrd,
+    T: Into<f64>,
+{
+    fn eq(&self, other: &Self) -> bool {
+        if self.denominator() == T::zero() || other.denominator() == T::zero() {
+            false
+        } else {
+            (self.num.into() / self.den.into()) == (other.num.into() / other.den.into())
+        }
+    }
+}
+
+impl<T> Eq for Rate<T>
+where
+    T: Num + Copy,
+    T: PartialOrd,
+    T: Into<f64>,
+{
+}
+
 impl<T> PartialOrd for Rate<T>
 where
-    T: PrimInt,
+    T: Num + Copy,
     T: PartialOrd,
     f64: From<T>,
 {
@@ -124,7 +147,7 @@ mod test {
 
 impl<T> Rational<T> for Rate<T>
 where
-    T: PrimInt + Copy,
+    T: Num + Copy,
 {
     fn numerator(&self) -> T {
         self.num

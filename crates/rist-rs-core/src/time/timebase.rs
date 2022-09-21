@@ -3,13 +3,13 @@ use super::{
     timestamp::{MediaTimestamp, MediaTimestampPrimitive},
 };
 use crate::traits::math::numbers::{Rational, RationalExt};
-use num_traits::{FromPrimitive, PrimInt};
+use num_traits::{FromPrimitive, Num};
 
-pub trait MediaTimebasePrimitive: PrimInt + Into<f64> {}
+pub trait MediaTimebasePrimitive: Num + Copy + PartialOrd + Into<f64> {}
 
 impl<T> MediaTimebasePrimitive for T
 where
-    T: PrimInt,
+    T: Num + Copy + PartialOrd,
     f64: From<T>,
 {
 }

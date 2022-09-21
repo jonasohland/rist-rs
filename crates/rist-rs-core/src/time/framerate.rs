@@ -1,12 +1,12 @@
 use super::timebase::{MediaTimebase, MediaTimebasePrimitive};
 use crate::traits::math::numbers::{Rational, RationalExt};
-use num_traits::PrimInt;
+use num_traits::Num;
 
-pub trait MediaFrameratePrimitive: PrimInt + Into<f64> {}
+pub trait MediaFrameratePrimitive: Num + Copy + PartialOrd + Into<f64> {}
 
 impl<T> MediaFrameratePrimitive for T
 where
-    T: PrimInt,
+    T: Num + Copy + PartialOrd,
     f64: From<T>,
 {
 }
@@ -17,7 +17,7 @@ where
 {
     fn make_timebase<Rep, K>(&self) -> Rep
     where
-        K: MediaTimebasePrimitive,
+        K: MediaTimebasePrimitive + PartialOrd,
         Rep: MediaTimebase<K> + RationalExt<T>,
     {
         Rep::from((self.numerator(), self.denominator())).reciprocal()
@@ -55,7 +55,7 @@ mod test {
 
     #[test]
     fn test_make_timebase() {
-        assert_eq!(Rate::rational(1, 25), 25.make_timebase());
+        assert_eq!(Rate::new(0.04), 25.0.make_timebase());
     }
 
     #[test]
