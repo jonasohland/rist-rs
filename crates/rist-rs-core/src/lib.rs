@@ -10,7 +10,7 @@ extern crate std;
 #[allow(unused)]
 pub mod net;
 
-#[allow(unused)]
+// #[allow(unused)]
 pub mod time;
 
 pub mod internal;
