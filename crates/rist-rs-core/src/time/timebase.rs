@@ -103,11 +103,11 @@ mod test {
     #[test]
     fn test_make_framerate() {
         // this is not useful at all but we test it for completeness
-        assert_eq!(Rate::new(1, 25), 25.make_framerate());
+        assert_eq!(Rate::rational(1, 25), 25.make_framerate());
     }
 
     #[test]
     fn test_to_framerate() {
-        assert_eq!(Rate::new(25, 1), Rate::new(1, 25).to_framerate());
+        assert_eq!(Rate::rational(25, 1), Rate::rational(1, 25).to_framerate());
     }
 }

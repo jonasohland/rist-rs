@@ -23,6 +23,35 @@ where
     }
 }
 
+impl<T> From<T> for Rate<T>
+where
+    T: PrimInt + Copy,
+    T: Rational<T>,
+{
+    fn from(v: T) -> Self {
+        Self::new(v)
+    }
+}
+
+impl<T> Rate<T>
+where
+    T: PrimInt,
+{
+    pub fn new<K>(rational: K) -> Self
+    where
+        K: Rational<T>,
+    {
+        Self {
+            num: rational.numerator(),
+            den: rational.denominator(),
+        }
+    }
+
+    pub fn rational(num: T, den: T) -> Self {
+        Self { num, den }
+    }
+}
+
 impl<T> Display for Rate<T>
 where
     T: PrimInt,
@@ -38,10 +67,6 @@ impl<T> Rate<T>
 where
     T: PrimInt,
 {
-    pub fn new(num: T, den: T) -> Self {
-        Self { num, den }
-    }
-
     pub fn as_float<K: FloatCore>(&self) -> K
     where
         K: From<T>,
@@ -77,23 +102,23 @@ mod test {
 
     #[test]
     fn zero_rate() {
-        let rate = Rate::new(1234, 0);
+        let rate = Rate::from((1234, 0));
         assert_eq!(rate.as_float::<f64>(), 0.);
     }
 
     #[test]
     fn cmp_equal() {
-        assert_eq!(Rate::new(25, 1), Rate::new(25, 1));
+        assert_eq!(Rate::new(25), Rate::from((25, 1)));
     }
 
     #[test]
     fn cmp_common_den() {
-        assert!(Rate::new(60000, 1001) > Rate::new(30000, 1001));
+        assert!(Rate::from((60000, 1001)) > Rate::from((30000, 1001)));
     }
 
     #[test]
     fn cmp_float() {
-        assert!(Rate::new(60000, 1001) < Rate::new(60, 1));
+        assert!(Rate::from((60000, 1001)) < Rate::new(60));
     }
 }
 
@@ -107,15 +132,5 @@ where
 
     fn denominator(&self) -> T {
         self.den
-    }
-}
-
-impl<T> From<T> for Rate<T>
-where
-    T: PrimInt + Copy,
-    T: Rational<T>,
-{
-    fn from(v: T) -> Self {
-        Self::new(v.numerator(), v.denominator())
     }
 }

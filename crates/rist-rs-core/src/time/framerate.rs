@@ -55,11 +55,11 @@ mod test {
 
     #[test]
     fn test_make_timebase() {
-        assert_eq!(Rate::new(1, 25), 25.make_timebase());
+        assert_eq!(Rate::rational(1, 25), 25.make_timebase());
     }
 
     #[test]
     fn test_to_timebase() {
-        assert_eq!(Rate::new(1, 25), Rate::new(25, 1).to_timebase());
+        assert_eq!(Rate::rational(1, 25), Rate::rational(25, 1).to_timebase());
     }
 }

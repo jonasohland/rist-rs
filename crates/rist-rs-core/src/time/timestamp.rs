@@ -64,7 +64,7 @@ where
     pub fn new(ts: MediaTimestamp<T>, time_base: impl Rational<B>) -> Self {
         Self {
             ts,
-            time_base: Rate::new(time_base.numerator(), time_base.denominator()),
+            time_base: Rate::new(time_base),
         }
     }
 
@@ -74,7 +74,7 @@ where
             ts: self
                 .time_base
                 .convert_timestamp_unchecked(self.ts, timebase),
-            time_base: Rate::new(timebase.numerator(), timebase.denominator()),
+            time_base: Rate::new(timebase),
         }
     }
 
@@ -84,7 +84,7 @@ where
             .convert_timestamp(self.ts, timebase)
             .map(|ts| Self {
                 ts,
-                time_base: Rate::new(timebase.numerator(), timebase.denominator()),
+                time_base: Rate::new(timebase),
             })
     }
 }
