@@ -1,5 +1,5 @@
 use crate::{
-    time::{timebase::MediaTimebasePrimitive, timestamp::MediaTimestampPrimitive},
+    time::media::{timebase::MediaTimebasePrimitive, timestamp::MediaTimestampPrimitive},
     traits::{
         packet::{rist::RistMediaPacket, seq::SequenceNumber},
         time::clock::Clock,

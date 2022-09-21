@@ -1,5 +1,3 @@
-pub mod framerate;
+pub mod media;
 pub mod ntp;
 pub mod rate;
-pub mod timebase;
-pub mod timestamp;

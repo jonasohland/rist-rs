@@ -3,10 +3,11 @@ use core::fmt::Display;
 use num_traits::FromPrimitive;
 use num_traits::Num;
 
+use crate::time::rate::Rate;
 use crate::traits::math::numbers::Rational;
 
+use super::timebase::MediaTimebase;
 use super::timebase::MediaTimebasePrimitive;
-use super::{rate::Rate, timebase::MediaTimebase};
 
 pub trait MediaTimestampPrimitive: Num + Copy + PartialOrd + Into<f64> {}
 

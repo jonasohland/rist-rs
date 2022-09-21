@@ -1,4 +1,4 @@
-use crate::time::{
+use crate::time::media::{
     timebase::MediaTimebasePrimitive,
     timestamp::{ConvertibleMediaTimestamp, MediaTimestamp, MediaTimestampPrimitive},
 };

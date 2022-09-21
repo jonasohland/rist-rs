@@ -1,4 +1,4 @@
-use crate::time::{timebase::MediaTimebasePrimitive, timestamp::MediaTimestampPrimitive};
+use crate::time::media::{timebase::MediaTimebasePrimitive, timestamp::MediaTimestampPrimitive};
 
 use super::{
     seq::{OrderedPacket, SequenceNumber},
