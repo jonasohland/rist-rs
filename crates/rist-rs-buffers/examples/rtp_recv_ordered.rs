@@ -77,7 +77,7 @@ fn main() -> ! {
     // first argument: listen address (required)
     let sock_addr: SocketAddrV4 = args
         .next()
-        .expect("Missing <address command line arg>")
+        .expect("Missing <address>")
         .as_str()
         .parse()
         .expect("Failed to parse ip address");
