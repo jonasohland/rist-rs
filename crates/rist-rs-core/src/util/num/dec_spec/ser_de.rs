@@ -156,19 +156,6 @@ macro_rules! impl_dec_spec_wrapper {
                 self.0
             }
         }
-
-        impl<N: $trait<N>> Deref for $wrapper<N> {
-            type Target = N;
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-
-        impl<N: $trait<N>> DerefMut for $wrapper<N> {
-            fn deref_mut(&mut self) -> &mut Self::Target {
-                &mut self.0
-            }
-        }
     };
 }
 
