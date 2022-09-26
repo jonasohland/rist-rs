@@ -548,18 +548,35 @@ name = "rist-rs-macros"
 version = "0.0.1"
 
 [[package]]
-name = "rist-rs-net"
-version = "0.0.1"
-dependencies = [
- "bytes",
- "log 0.3.9",
-]
-
-[[package]]
 name = "rist-rs-rtp"
 version = "0.0.1"
 dependencies = [
  "log 0.3.9",
+]
+
+[[package]]
+name = "rist-rs-runtime"
+version = "0.0.1"
+dependencies = [
+ "log 0.3.9",
+]
+
+[[package]]
+name = "rist-rs-runtime-std"
+version = "0.0.1"
+dependencies = [
+ "rist-rs-core",
+ "rist-rs-runtime",
+ "rist-rs-transport-dtls-openssl",
+ "tracing",
+]
+
+[[package]]
+name = "rist-rs-runtime-tokio"
+version = "0.0.1"
+dependencies = [
+ "rist-rs-runtime",
+ "tracing",
 ]
 
 [[package]]
@@ -568,6 +585,14 @@ version = "0.0.1"
 dependencies = [
  "log 0.3.9",
  "nom",
+]
+
+[[package]]
+name = "rist-rs-transport-dtls-openssl"
+version = "0.0.1"
+dependencies = [
+ "rist-rs-runtime",
+ "tracing",
 ]
 
 [[package]]
@@ -776,6 +801,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2fce9567bd60a67d08a16488756721ba392f24f29006402881e43b19aac64307"
 dependencies = [
  "cfg-if",
+ "log 0.4.17",
  "pin-project-lite",
  "tracing-attributes",
  "tracing-core",

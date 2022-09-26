@@ -1,0 +1,16 @@
+[package]
+name    = "rist-rs-runtime-std"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+rist-rs-core                   = { path = "../rist-rs-core" }
+rist-rs-runtime                = { path = "../rist-rs-runtime" }
+rist-rs-transport-dtls-openssl = { path = "../rist-rs-transport-dtls-openssl", optional = true }
+tracing                        = { version = "0.1", default-features = false }
+
+[features]
+default    = ["log", "openssl"]
+openssl    = ["rist-rs-transport-dtls-openssl"]
+log        = ["tracing/log"]
+log-always = ["tracing/log-always"]

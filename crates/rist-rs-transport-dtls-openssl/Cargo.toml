@@ -1,0 +1,13 @@
+[package]
+name    = "rist-rs-transport-dtls-openssl"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]
+rist-rs-runtime = { path = "../rist-rs-runtime" }
+tracing         = { version = "0.1" }
+
+[features]
+default    = ["log"]
+log        = ["tracing/log"]
+log-always = ["tracing/log-always"]
