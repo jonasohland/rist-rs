@@ -5,9 +5,17 @@ edition = "2021"
 
 [dependencies]
 rist-rs-runtime = { path = "../rist-rs-runtime" }
+openssl         = { version = "0.10" }
 tracing         = { version = "0.1" }
+tokio-openssl   = { version = "0.6.3", optional = true }
+
+[dev-dependencies]
+clap  = { version = "3", features = ["derive"] }
+tokio = { version = "1", features = ["rt", "net"] }
 
 [features]
-default    = ["log"]
-log        = ["tracing/log"]
-log-always = ["tracing/log-always"]
+default          = ["log", "tokio"]
+log              = ["tracing/log"]
+log-always       = ["tracing/log-always"]
+openssl-vendored = ["openssl/vendored"]
+tokio            = ["tokio-openssl"]
