@@ -1,4 +1,5 @@
 pub mod basic;
+pub mod socket;
 
 /// DTLS transports
 #[cfg(feature = "openssl")]

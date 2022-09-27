@@ -4,13 +4,16 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
-rist-rs-core                   = { path = "../rist-rs-core" }
+rist-rs-core                   = { path = "../rist-rs-core", features = ["std"] }
 rist-rs-runtime                = { path = "../rist-rs-runtime" }
+rist-rs-buffers                = { path = "../rist-rs-buffers" }
 rist-rs-transport-dtls-openssl = { path = "../rist-rs-transport-dtls-openssl", optional = true }
 tracing                        = { version = "0.1", default-features = false }
 
+[dev-dependencies]
+tracing-subscriber = { version = "0.3" }
+
 [features]
-default    = ["log", "openssl"]
+default    = ["openssl"]
 openssl    = ["rist-rs-transport-dtls-openssl"]
 log        = ["tracing/log"]
-log-always = ["tracing/log-always"]
