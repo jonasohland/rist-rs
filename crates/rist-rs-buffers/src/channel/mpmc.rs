@@ -449,20 +449,31 @@ impl<T> Drop for SendEnd<T> {
     }
 }
 
+#[derive(Clone)]
 pub struct Receiver<T>(Arc<ReceiveEnd<T>>);
+
+#[derive(Clone)]
 pub struct Sender<T>(Arc<SendEnd<T>>);
 
 impl<T> Receiver<T> {
     #[rustfmt::skip]
-    fn try_receive(&self) -> Result<T, TryRecvError> {
+    pub fn try_receive(&self) -> Result<T, TryRecvError> {
         self.0.0.try_recv()
+    }
+
+    pub fn is_disconnected(&self) -> bool {
+        self.0 .0.is_disconnected()
     }
 }
 
 impl<T> Sender<T> {
     #[rustfmt::skip]
-    fn try_send(&self, msg: T) -> Result<(), TrySendError<T>> {
+    pub fn try_send(&self, msg: T) -> Result<(), TrySendError<T>> {
         self.0.0.try_send(msg)
+    }
+
+    pub fn is_disconnected(&self) -> bool {
+        self.0 .0.is_disconnected()
     }
 }
 
