@@ -1,12 +1,18 @@
-use core::ops::{Deref, DerefMut};
-
 use alloc::vec::Vec;
+use core::fmt::Debug;
+use core::ops::{Deref, DerefMut};
 
 pub struct StaticVec<T>
 where
     T: Default,
 {
     data: Vec<T>,
+}
+
+impl<T: Debug + Default> Debug for StaticVec<T> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        self.data.fmt(f)
+    }
 }
 
 impl<T> StaticVec<T>
@@ -36,6 +42,17 @@ where
 {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.data
+    }
+}
+
+impl<T> From<&[T]> for StaticVec<T>
+where
+    T: Default + Clone,
+{
+    fn from(slice: &[T]) -> Self {
+        Self {
+            data: Vec::from(slice),
+        }
     }
 }
 
