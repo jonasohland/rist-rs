@@ -15,7 +15,7 @@ struct Config {
     key: String,
 }
 
-fn build_acceptor(config: &Config) -> SslAcceptor {
+fn _build_acceptor(config: &Config) -> SslAcceptor {
     let mut builder = SslAcceptor::mozilla_intermediate_v5(SslMethod::dtls()).unwrap();
     builder.set_certificate_chain_file(&config.cert).unwrap();
     builder
@@ -25,6 +25,5 @@ fn build_acceptor(config: &Config) -> SslAcceptor {
 }
 
 fn main() {
-    let config = Config::parse();
-    let acceptor = build_acceptor(&config);
+    let _config = Config::parse();
 }
