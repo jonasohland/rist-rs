@@ -13,3 +13,5 @@ pub mod reorder;
 pub mod rist;
 
 pub mod channel;
+
+pub mod stream;
