@@ -161,7 +161,7 @@ where
         &mut self,
         data: StaticVec<u8>,
         peer: &A,
-    ) -> NonBlockingMessageStream {
+    ) -> NonBlockingMessageStream<A> {
         debug!(?peer, "create new message stream");
         let (c1, c2) = duplex_channel(1024);
         let mut backend = NonBlockingMessageStreamChannel::new(c1);
@@ -169,10 +169,10 @@ where
         if self.streams.insert(*peer, backend).is_some() {
             debug!(?peer, "replace message stream backend")
         }
-        NonBlockingMessageStream::new(c2)
+        NonBlockingMessageStream::new(c2, *peer)
     }
 
-    fn on_rx(&mut self, len: usize, addr: &A) -> Option<NonBlockingMessageStream> {
+    fn on_rx(&mut self, len: usize, addr: &A) -> Option<NonBlockingMessageStream<A>> {
         match self.streams.get_mut(addr) {
             Some(channel) => match channel.on_recv(StaticVec::from(self.rx_buf.split_at(len).0)) {
                 Ok(_) => None,
@@ -190,7 +190,7 @@ where
         }
     }
 
-    pub fn accept(&mut self) -> Option<Result<NonBlockingMessageStream, E>> {
+    pub fn accept(&mut self) -> Option<Result<NonBlockingMessageStream<A>, E>> {
         self.maintenance();
         while let Some(r) = self.io.try_recv_from(&mut self.rx_buf) {
             match r {
@@ -236,13 +236,30 @@ pub enum NonBlockingMessageStreamError {
     Closed,
 }
 
-pub struct NonBlockingMessageStream {
+pub struct NonBlockingMessageStream<A>
+where
+    A: Clone + Copy + Debug,
+{
     channel: DuplexChannel<StaticVec<u8>, StaticVec<u8>>,
+    peer_address: A,
 }
 
-impl NonBlockingMessageStream {
-    fn new(channel: DuplexChannel<StaticVec<u8>, StaticVec<u8>>) -> NonBlockingMessageStream {
-        Self { channel }
+impl<A> NonBlockingMessageStream<A>
+where
+    A: Clone + Copy + Debug,
+{
+    fn new(
+        channel: DuplexChannel<StaticVec<u8>, StaticVec<u8>>,
+        peer_address: A,
+    ) -> NonBlockingMessageStream<A> {
+        Self {
+            channel,
+            peer_address,
+        }
+    }
+
+    pub fn peer_address(&self) -> A {
+        self.peer_address
     }
 }
 
@@ -270,7 +287,10 @@ impl io::Read for NonBlockingMessageStream {
 
 */
 
-impl ReceiveNonBlocking for NonBlockingMessageStream {
+impl<A> ReceiveNonBlocking for NonBlockingMessageStream<A>
+where
+    A: Clone + Copy + Debug,
+{
     type Error = NonBlockingMessageStreamError;
 
     fn try_recv(&mut self, buf: &mut [u8]) -> Option<Result<usize, Self::Error>> {
@@ -298,7 +318,10 @@ impl ReceiveNonBlocking for NonBlockingMessageStream {
     }
 }
 
-impl SendNonBlocking for NonBlockingMessageStream {
+impl<A> SendNonBlocking for NonBlockingMessageStream<A>
+where
+    A: Clone + Copy + Debug,
+{
     type Error = NonBlockingMessageStreamError;
 
     fn try_send(&mut self, buf: &[u8]) -> Option<Result<usize, Self::Error>> {

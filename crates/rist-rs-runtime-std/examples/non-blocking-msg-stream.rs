@@ -29,7 +29,7 @@ fn main() {
         .unwrap(),
         1524,
     );
-    let mut streams = LinkedList::<(NonBlockingMessageStream, SystemTime)>::new();
+    let mut streams = LinkedList::<(NonBlockingMessageStream<SocketAddr>, SystemTime)>::new();
     let mut rx_buf = StaticVec::<u8>::new(1500);
     loop {
         if let Some(res) = acceptor.accept() {
