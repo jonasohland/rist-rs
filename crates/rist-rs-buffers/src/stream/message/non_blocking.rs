@@ -1,3 +1,4 @@
+use super::MessageStreamPeerAddress;
 use crate::channel::mpmc::{channel, Receiver, Sender, TryRecvError, TrySendError};
 
 use rist_rs_core::collections::static_vec::StaticVec;
@@ -5,7 +6,6 @@ use rist_rs_core::traits::io::{ReceiveFromNonBlocking, ReceiveNonBlocking};
 use rist_rs_core::traits::io::{SendNonBlocking, SendToNonBlocking};
 
 use core::fmt::Debug;
-use core::hash::Hash;
 
 use hashbrown::HashMap;
 
@@ -110,7 +110,7 @@ impl NonBlockingMessageStreamChannel {
 pub struct NonBlockingMessageStreamAcceptor<S, A, E>
 where
     E: Sized,
-    A: Clone + Copy + Hash + Debug + Eq,
+    A: MessageStreamPeerAddress,
     S: ReceiveFromNonBlocking<Error = E, Address = A> + SendToNonBlocking<Error = E, Address = A>,
 {
     io: S,
@@ -122,7 +122,7 @@ where
 impl<S, A, E> NonBlockingMessageStreamAcceptor<S, A, E>
 where
     E: Sized,
-    A: Clone + Copy + Hash + Debug + Eq,
+    A: MessageStreamPeerAddress,
     S: ReceiveFromNonBlocking<Error = E, Address = A> + SendToNonBlocking<Error = E, Address = A>,
 {
     pub fn new(io: S, mtu: usize) -> Self {
@@ -238,7 +238,7 @@ pub enum NonBlockingMessageStreamError {
 
 pub struct NonBlockingMessageStream<A>
 where
-    A: Clone + Copy + Debug,
+    A: MessageStreamPeerAddress,
 {
     channel: DuplexChannel<StaticVec<u8>, StaticVec<u8>>,
     peer_address: A,
@@ -246,7 +246,7 @@ where
 
 impl<A> NonBlockingMessageStream<A>
 where
-    A: Clone + Copy + Debug,
+    A: MessageStreamPeerAddress,
 {
     fn new(
         channel: DuplexChannel<StaticVec<u8>, StaticVec<u8>>,
@@ -289,7 +289,7 @@ impl io::Read for NonBlockingMessageStream {
 
 impl<A> ReceiveNonBlocking for NonBlockingMessageStream<A>
 where
-    A: Clone + Copy + Debug,
+    A: MessageStreamPeerAddress,
 {
     type Error = NonBlockingMessageStreamError;
 
@@ -320,7 +320,7 @@ where
 
 impl<A> SendNonBlocking for NonBlockingMessageStream<A>
 where
-    A: Clone + Copy + Debug,
+    A: MessageStreamPeerAddress,
 {
     type Error = NonBlockingMessageStreamError;
 
