@@ -4,18 +4,21 @@ version = "0.0.1"
 edition = "2021"
 
 [dependencies]
+rist-rs-core    = { path = "../rist-rs-core" }
 rist-rs-runtime = { path = "../rist-rs-runtime" }
+rist-rs-buffers = { path = "../rist-rs-buffers" }
+foreign-types   = { version = "0.3" }
 openssl         = { version = "0.10" }
 tracing         = { version = "0.1" }
-tokio-openssl   = { version = "0.6.3", optional = true }
 
 [dev-dependencies]
-clap  = { version = "3", features = ["derive"] }
-tokio = { version = "1", features = ["rt", "net"] }
+clap                = { version = "3", features = ["derive"] }
+tracing-subscriber  = { version = "0.3" }
+rist-rs-runtime-std = { path = "../rist-rs-runtime-std" }
 
 [features]
-default          = ["log", "tokio"]
-log              = ["tracing/log"]
-log-always       = ["tracing/log-always"]
-openssl-vendored = ["openssl/vendored"]
-tokio            = ["tokio-openssl"]
+default                  = ["log"]
+log                      = ["tracing/log"]
+log-always               = ["tracing/log-always"]
+openssl-vendored         = ["openssl/vendored"]
+ssl_no_verify_dont_warn  = []
