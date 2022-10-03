@@ -9,4 +9,5 @@ impl<T> MessageStreamPeerAddress for T where T: Clone + Copy + Hash + Debug + Eq
 
 pub use non_blocking::NonBlockingMessageStream;
 pub use non_blocking::NonBlockingMessageStreamAcceptor;
+pub use non_blocking::NonBlockingMessageStreamConnector;
 pub use non_blocking::NonBlockingMessageStreamError;
