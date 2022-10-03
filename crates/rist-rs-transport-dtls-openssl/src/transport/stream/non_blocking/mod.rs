@@ -249,7 +249,7 @@ impl From<openssl::ssl::Error> for DtlsStreamError {
 }
 
 /// A stream candidate used to keep state inside the stream acceptor
-enum DtlsStreamCandidate<A>
+enum DtlsAcceptCandidate<A>
 where
     A: MessageStreamPeerAddress,
 {
@@ -262,12 +262,12 @@ enum DtlsStreamCandidateError<A>
 where
     A: MessageStreamPeerAddress,
 {
-    InProgress(DtlsStreamCandidate<A>),
+    InProgress(DtlsAcceptCandidate<A>),
     Error(SslErrorStack, A),
     Failed(openssl::ssl::Error, A),
 }
 
-impl<A> DtlsStreamCandidate<A>
+impl<A> DtlsAcceptCandidate<A>
 where
     A: MessageStreamPeerAddress,
 {
@@ -282,8 +282,8 @@ where
     /// Get the remote peer address
     fn peer_address(&self) -> A {
         match self {
-            DtlsStreamCandidate::Candidate(state) => state.get_ref().inner.peer_address(),
-            DtlsStreamCandidate::Ready(s) => s.inner.get_ref().inner.peer_address(),
+            DtlsAcceptCandidate::Candidate(state) => state.get_ref().inner.peer_address(),
+            DtlsAcceptCandidate::Ready(s) => s.inner.get_ref().inner.peer_address(),
         }
     }
 
@@ -297,11 +297,11 @@ where
             .accept(StreamWrapper::new(stream))
         {
             Err(ssl::HandshakeError::WouldBlock(mid_handshake_stream)) => {
-                Ok(DtlsStreamCandidate::Candidate(mid_handshake_stream))
+                Ok(DtlsAcceptCandidate::Candidate(mid_handshake_stream))
             }
             Err(ssl::HandshakeError::Failure(e)) => Err(DtlsStreamError::Ssl(e.into_error())),
             Err(ssl::HandshakeError::SetupFailure(e)) => Err(DtlsStreamError::Library(e)),
-            Ok(stream) => Ok(DtlsStreamCandidate::ready(DtlsStream::new(stream))),
+            Ok(stream) => Ok(DtlsAcceptCandidate::ready(DtlsStream::new(stream))),
         }
     }
 
@@ -314,7 +314,7 @@ where
                 Ok(s) => Ok(DtlsStream::new(s)),
                 Err(ssl::HandshakeError::WouldBlock(returned_stream)) => {
                     Err(DtlsStreamCandidateError::InProgress(
-                        DtlsStreamCandidate::candidate(returned_stream),
+                        DtlsAcceptCandidate::candidate(returned_stream),
                     ))
                 }
                 Err(ssl::HandshakeError::SetupFailure(err)) => {
@@ -324,7 +324,7 @@ where
                     Err(DtlsStreamCandidateError::Failed(failed.into_error(), peer))
                 }
             },
-            DtlsStreamCandidate::Ready(stream) => Ok(stream),
+            DtlsAcceptCandidate::Ready(stream) => Ok(stream),
         }
     }
 }
@@ -356,7 +356,7 @@ where
 {
     config: Config<ContextProvider>,
     acceptor: NonBlockingMessageStreamAcceptor<Stream, Address, AcceptErr>,
-    candidates: Option<LinkedList<(DtlsStreamCandidate<Address>, SystemTime)>>,
+    candidates: Option<LinkedList<(DtlsAcceptCandidate<Address>, SystemTime)>>,
 }
 
 impl<Stream, Address, ContextProvider, ContextError, AcceptError>
@@ -379,7 +379,7 @@ where
     }
 
     /// Append a new candidate to the internal list
-    fn append_candidate(&mut self, candidate: DtlsStreamCandidate<Address>) {
+    fn append_candidate(&mut self, candidate: DtlsAcceptCandidate<Address>) {
         tracing::debug!(peer = ?candidate.peer_address(), "new dtls stream candidate");
         self.candidates
             .get_or_insert_with(Default::default)
@@ -398,7 +398,7 @@ where
                 Err(e) => Some(Err(DtlsStreamAcceptError::Accept(e))),
                 Ok(stream) => match self.config.context_builder.context() {
                     Err(ec) => Some(Err(DtlsStreamAcceptError::Context(ec))),
-                    Ok(context) => match DtlsStreamCandidate::try_new(stream, context) {
+                    Ok(context) => match DtlsAcceptCandidate::try_new(stream, context) {
                         Ok(candidate) => Some(Ok(candidate)),
                         Err(DtlsStreamError::Io(ioe)) => Some(Err(DtlsStreamAcceptError::Io(ioe))),
                         Err(other) => {
