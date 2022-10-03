@@ -140,7 +140,7 @@ where
         if self.can_write() {
             let pos = self.advance_write_head();
             if let Some(s) = self.data[pos].replace(packet) {
-                log::trace!(
+                tracing::trace!(
                     "dropped a packet (overwrite) with sequence number: {:?}",
                     s.sequence_number()
                 );
@@ -183,7 +183,7 @@ where
                         break self.data[cursor].take();
                     }
                     if Self::is_expired(self.read_seq, p) {
-                        log::trace!(
+                        tracing::trace!(
                             "dropped a packet with sequence number: {:?}",
                             p.sequence_number()
                         );
@@ -291,14 +291,14 @@ where
     fn put(&mut self, packet: P) -> Option<P> {
         let s = packet.sequence_number();
         if self.is_seq_reset(self.write_seq, s) {
-            log::debug!("reset buffer from previous seq {} -> {}", self.write_seq, s);
+            tracing::debug!("reset buffer from previous seq {} -> {}", self.write_seq, s);
             self.reset(packet.sequence_number())
         }
         if !Self::is_expired(self.read_seq, &packet) {
             self.write_seq = s;
             self.push(packet)
         } else {
-            log::trace!(
+            tracing::trace!(
                 "reject expired packet with sequence number: {}",
                 packet.sequence_number()
             );

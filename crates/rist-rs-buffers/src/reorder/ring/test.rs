@@ -32,7 +32,10 @@ type TestReorderBuffer<S> = ReorderRingBuffer<S, TestPacket<S>>;
 /// Initialize the test environment
 #[cfg(test)]
 fn test_init() {
-    simple_logger::init_with_level(log::Level::Trace);
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::TRACE)
+        .try_init()
+        .ok();
 }
 
 /// Expect a packet with the given sequence number to be returned by the buffer

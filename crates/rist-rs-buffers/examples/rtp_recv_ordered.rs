@@ -55,7 +55,7 @@ fn report_metrics(
 ) {
     let metrics = buf.metrics();
     let que = now.duration_since(last_tp).unwrap();
-    log::info!(
+    tracing::info!(
         "reorder metrics: [ok: {}] [drop: {}] [lost: {}] [ord: {}] [rej: {}] [in: {:.1}kbit/s] [out: {:.1}kbit/s]",
         metrics.delivered,
         metrics.dropped,
@@ -70,7 +70,9 @@ fn report_metrics(
 }
 
 fn main() -> ! {
-    simple_logger::init_with_env().unwrap();
+    tracing_subscriber::fmt()
+        .with_max_level(tracing::Level::TRACE)
+        .init();
     let mut args = env::args();
     drop(args.next());
 
@@ -108,7 +110,7 @@ fn main() -> ! {
 
     // join multicast group
     if let Some(addr) = mcast_group {
-        log::info!("join multicast group: {}:{}", addr, sock_addr.port());
+        tracing::info!("join multicast group: {}:{}", addr, sock_addr.port());
         rx_sock
             .join_multicast_v4(&addr, sock_addr.ip())
             .expect("Failed to join multicast group");
@@ -137,7 +139,7 @@ fn main() -> ! {
         match rx_sock.recv(&mut buf) {
             Ok(data) => match RTPPacket::try_new(buf.split_at(data).0) {
                 Err(e) => {
-                    log::error!("invalid rtp packet: {:?}", e);
+                    tracing::error!("invalid rtp packet: {:?}", e);
                 }
                 // send to reorder buffer
                 Ok(packet) => {
@@ -146,7 +148,7 @@ fn main() -> ! {
                 }
             },
             Err(e) => {
-                log::error!("recv error: {}", e);
+                tracing::error!("recv error: {}", e);
                 exit(1);
             }
         }
@@ -162,7 +164,7 @@ fn main() -> ! {
                                 stream_metrics.bytes_out += s as u64;
                             }
                             Err(e) => {
-                                log::error!("send error: {}", e);
+                                tracing::error!("send error: {}", e);
                                 exit(1)
                             }
                         },
@@ -180,7 +182,7 @@ fn main() -> ! {
                 ReorderQueueEvent::Missing => continue,
                 // sequence number was reset
                 ReorderQueueEvent::Reset(s) => {
-                    log::info!("buffer indicated a reset to sequence number: {}", s);
+                    tracing::info!("buffer indicated a reset to sequence number: {}", s);
                     // check the next event from the buffer
                     continue;
                 }
