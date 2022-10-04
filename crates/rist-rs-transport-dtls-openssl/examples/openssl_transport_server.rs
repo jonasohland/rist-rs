@@ -1,3 +1,4 @@
+use rist_rs_core::traits::io::SendNonBlocking;
 use rist_rs_runtime_std::transport::socket::NonBlockingUdpSocket;
 use rist_rs_transport_dtls_openssl::transport::stream::non_blocking::DtlsStreamAcceptor;
 use rist_rs_transport_dtls_openssl::transport::stream::{self, SimpleContextProvider};
@@ -22,13 +23,17 @@ struct Config {
     #[clap(long, short, help = "Load server key from this file")]
     key: String,
 
-    #[clap(long, short, help = "Ca certificate")]
+    #[clap(long, short = 'C', help = "Ca certificate")]
     ca: Option<String>,
 
     #[clap(long, short, help = "Verify the client certificate")]
     verify_client_cert: bool,
 
-    #[clap(long, short, help = "Set client hostname that should be verified")]
+    #[clap(
+        long,
+        short = 'H',
+        help = "Set client hostname that should be verified"
+    )]
     client_hostname: Option<String>,
 }
 
@@ -83,7 +88,7 @@ fn main() {
     let config = Config::parse();
     let mut acceptor = DtlsStreamAcceptor::new(
         NonBlockingUdpSocket::bind(config.address).unwrap(),
-        1524,
+        2670,
         load_stream_config(&config),
     );
     tracing::debug!(address = ?config.address, "listening");
@@ -91,7 +96,10 @@ fn main() {
     loop {
         match acceptor.try_accept() {
             Some(res) => match res {
-                Ok(new_streams) => new_streams.into_iter().for_each(|s| streams.push_back(s)),
+                Ok(new_streams) => new_streams.into_iter().for_each(|mut s| {
+                    s.try_send("Hi from openssl_transport_server example!\n".as_bytes());
+                    streams.push_back(s)
+                }),
                 Err(err) => {
                     tracing::error!(error = ?err, "accept failed")
                 }

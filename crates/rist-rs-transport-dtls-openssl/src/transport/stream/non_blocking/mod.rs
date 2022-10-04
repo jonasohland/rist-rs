@@ -291,8 +291,13 @@ where
     fn try_new(
         stream: NonBlockingMessageStream<A>,
         context: impl Borrow<ssl::SslContext>,
+        mtu: usize,
     ) -> Result<Self, DtlsStreamError> {
         match ssl::Ssl::new(context.borrow())
+            .and_then(|mut ssl| {
+                ssl.set_mtu(mtu as u32)?;
+                Ok(ssl)
+            })
             .map_err(DtlsStreamError::Library)?
             .accept(StreamWrapper::new(stream))
         {
@@ -398,14 +403,18 @@ where
                 Err(e) => Some(Err(DtlsStreamAcceptError::Accept(e))),
                 Ok(stream) => match self.config.context_builder.context() {
                     Err(ec) => Some(Err(DtlsStreamAcceptError::Context(ec))),
-                    Ok(context) => match DtlsAcceptCandidate::try_new(stream, context) {
-                        Ok(candidate) => Some(Ok(candidate)),
-                        Err(DtlsStreamError::Io(ioe)) => Some(Err(DtlsStreamAcceptError::Io(ioe))),
-                        Err(other) => {
-                            tracing::info!(error = ?other, "dtls handshake aborted");
-                            None
+                    Ok(context) => {
+                        match DtlsAcceptCandidate::try_new(stream, context, self.acceptor.mtu()) {
+                            Ok(candidate) => Some(Ok(candidate)),
+                            Err(DtlsStreamError::Io(ioe)) => {
+                                Some(Err(DtlsStreamAcceptError::Io(ioe)))
+                            }
+                            Err(other) => {
+                                tracing::info!(error = ?other, "dtls handshake aborted");
+                                None
+                            }
                         }
-                    },
+                    }
                 },
             }) {
                 Some(result) => match result {

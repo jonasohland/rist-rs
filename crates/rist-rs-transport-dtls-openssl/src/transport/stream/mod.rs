@@ -69,7 +69,8 @@ impl SimpleContextProviderBuilder {
 
     /// Build the provider
     pub fn build(self) -> SimpleContextProvider {
-        SimpleContextProvider::new(self.builder.build().into_context())
+        let context = self.builder.build().into_context();
+        SimpleContextProvider::new(context)
     }
 }
 

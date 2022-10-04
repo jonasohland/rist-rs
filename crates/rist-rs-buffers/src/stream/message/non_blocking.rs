@@ -297,6 +297,10 @@ where
         }
     }
 
+    pub fn mtu(&self) -> usize {
+        self.rx_buf.len()
+    }
+
     pub fn accept(&mut self) -> Option<Result<NonBlockingMessageStream<A>, E>> {
         self.streams.maintenance();
         while let Some(r) = self.io.try_recv_from(&mut self.rx_buf) {
