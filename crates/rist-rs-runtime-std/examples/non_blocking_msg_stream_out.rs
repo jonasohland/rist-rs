@@ -3,8 +3,8 @@ use std::env;
 use std::net::SocketAddr;
 use std::process::exit;
 
-use rist_rs_core::{collections::static_vec::StaticVec, traits::io::SendNonBlocking};
 use rist_rs_core::traits::io::ReceiveNonBlocking;
+use rist_rs_core::{collections::static_vec::StaticVec, traits::io::SendNonBlocking};
 
 use rist_rs_buffers::stream::message::NonBlockingMessageStreamConnector;
 use rist_rs_runtime_std::transport::socket::NonBlockingUdpSocket;
@@ -38,7 +38,7 @@ fn main() {
         .collect::<LinkedList<_>>();
     let mut rx_buf = StaticVec::<u8>::new(1500);
     for stream in &mut streams {
-        stream.try_send(&[1,2,3,4]);
+        stream.try_send(&[1, 2, 3, 4]);
     }
     loop {
         if let Some(Err(e)) = connector.run() {
@@ -62,7 +62,7 @@ fn main() {
             })
             .collect();
         std::thread::sleep(std::time::Duration::from_millis(10));
-        if streams.is_empty() { 
+        if streams.is_empty() {
             break;
         }
     }

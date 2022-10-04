@@ -185,7 +185,6 @@ where
     }
 }
 
-
 struct NonBlockingStreamCollection<A>
 where
     A: MessageStreamPeerAddress,
@@ -339,7 +338,6 @@ where
         None
     }
 }
-
 
 pub struct NonBlockingMessageStreamConnector<S, A, E>
 where
