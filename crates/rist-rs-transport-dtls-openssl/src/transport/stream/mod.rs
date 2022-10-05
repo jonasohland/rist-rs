@@ -17,15 +17,16 @@ pub trait SslContextProvider: Send + Sync + Clone + Debug {
 #[derive(Debug, Clone)]
 pub struct SimpleContextProvider(ssl::SslContext);
 
-/// Builder for SimpleContextProvider
-pub struct SimpleContextProviderBuilder {
-    builder: ssl::SslAcceptorBuilder,
-}
+/// Builder for server-side SimpleContextProvider
+pub struct SimpleServerContextProviderBuilder(ssl::SslAcceptorBuilder);
 
-impl SimpleContextProviderBuilder {
+/// Builder for client-side SimpleContextProvider
+pub struct SimpleClientContextProviderBuilder(ssl::SslConnectorBuilder);
+
+impl SimpleServerContextProviderBuilder {
     /// Set the certificate for the peer
     pub fn with_certificate(mut self, cert: &x509::X509Ref) -> Result<Self, SslError> {
-        self.builder.set_certificate(cert.as_ref())?;
+        self.0.set_certificate(cert.as_ref())?;
         Ok(self)
     }
 
@@ -34,19 +35,19 @@ impl SimpleContextProviderBuilder {
     where
         T: pkey::HasPrivate,
     {
-        self.builder.set_private_key::<T>(key)?;
+        self.0.set_private_key::<T>(key)?;
         Ok(self)
     }
 
     /// Set the name that should be verified for the remote peer
     pub fn with_expected_peer_name(mut self, name: &str) -> Result<Self, SslError> {
-        self.builder.verify_param_mut().set_host(name)?;
+        self.0.verify_param_mut().set_host(name)?;
         Ok(self)
     }
 
     /// Additionally verify the client certificate
     pub fn with_verify_client_cert(mut self) -> Self {
-        self.builder
+        self.0
             .set_verify(ssl::SslVerifyMode::PEER | ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT);
         self
     }
@@ -55,7 +56,7 @@ impl SimpleContextProviderBuilder {
     pub fn with_ca_cert(mut self, cert: &x509::X509Ref) -> Result<Self, SslError> {
         let mut store = x509::store::X509StoreBuilder::new()?;
         store.add_cert(cert.to_owned())?;
-        self.builder.set_cert_store(store.build());
+        self.0.set_cert_store(store.build());
         Ok(self)
     }
 
@@ -63,13 +64,58 @@ impl SimpleContextProviderBuilder {
     pub fn with_no_verify(mut self) -> Self {
         #[cfg(not(feature = "ssl_no_verify_dont_warn"))]
         tracing::warn!("certificate verification disabled");
-        self.builder.set_verify(ssl::SslVerifyMode::NONE);
+        self.0.set_verify(ssl::SslVerifyMode::NONE);
         self
     }
 
     /// Build the provider
     pub fn build(self) -> SimpleContextProvider {
-        let context = self.builder.build().into_context();
+        let context = self.0.build().into_context();
+        SimpleContextProvider::new(context)
+    }
+}
+
+impl SimpleClientContextProviderBuilder {
+    /// Set the certificate for the peer
+    pub fn with_certificate(mut self, cert: &x509::X509Ref) -> Result<Self, SslError> {
+        self.0.set_certificate(cert.as_ref())?;
+        Ok(self)
+    }
+
+    /// Add the private key for the peer
+    pub fn with_key<T>(mut self, key: &pkey::PKeyRef<T>) -> Result<Self, SslError>
+    where
+        T: pkey::HasPrivate,
+    {
+        self.0.set_private_key::<T>(key)?;
+        Ok(self)
+    }
+
+    /// Set the name that should be verified for the remote peer
+    pub fn with_expected_peer_name(mut self, name: &str) -> Result<Self, SslError> {
+        self.0.verify_param_mut().set_host(name)?;
+        Ok(self)
+    }
+
+    /// Set a single trusted CA certificate for peer certificate verification
+    pub fn with_ca_cert(mut self, cert: &x509::X509Ref) -> Result<Self, SslError> {
+        let mut store = x509::store::X509StoreBuilder::new()?;
+        store.add_cert(cert.to_owned())?;
+        self.0.set_cert_store(store.build());
+        Ok(self)
+    }
+
+    /// Disable certificate verification
+    pub fn with_no_verify(mut self) -> Self {
+        #[cfg(not(feature = "ssl_no_verify_dont_warn"))]
+        tracing::warn!("certificate verification disabled");
+        self.0.set_verify(ssl::SslVerifyMode::NONE);
+        self
+    }
+
+    /// Build the provider
+    pub fn build(self) -> SimpleContextProvider {
+        let context = self.0.build().into_context();
         SimpleContextProvider::new(context)
     }
 }
@@ -80,11 +126,18 @@ impl SimpleContextProvider {
         Self(ctx)
     }
 
-    /// Create a builder
-    pub fn builder() -> Result<SimpleContextProviderBuilder, SslError> {
-        Ok(SimpleContextProviderBuilder {
-            builder: ssl::SslAcceptor::mozilla_intermediate_v5(ssl::SslMethod::dtls())?,
-        })
+    /// Create a builder for a server side ssl context
+    pub fn build_server() -> Result<SimpleServerContextProviderBuilder, SslError> {
+        Ok(SimpleServerContextProviderBuilder(
+            ssl::SslAcceptor::mozilla_intermediate_v5(ssl::SslMethod::dtls())?,
+        ))
+    }
+
+    // Create a builder for a client side ssl context
+    pub fn build_client() -> Result<SimpleClientContextProviderBuilder, SslError> {
+        Ok(SimpleClientContextProviderBuilder(
+            ssl::SslConnector::builder(ssl::SslMethod::dtls())?,
+        ))
     }
 }
 

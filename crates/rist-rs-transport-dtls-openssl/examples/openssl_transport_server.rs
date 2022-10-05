@@ -38,7 +38,7 @@ struct Config {
 }
 
 fn load_stream_config(config: &Config) -> stream::Config<SimpleContextProvider> {
-    let mut builder = SimpleContextProvider::builder()
+    let mut builder = SimpleContextProvider::build_server()
         .unwrap()
         .with_certificate(
             &x509::X509::from_pem(
@@ -97,7 +97,7 @@ fn main() {
         match acceptor.try_accept() {
             Some(res) => match res {
                 Ok(new_streams) => new_streams.into_iter().for_each(|mut s| {
-                    s.try_send("Hi from openssl_transport_server example!\n".as_bytes());
+                    s.try_send("Hi from openssl_transport_server example!".as_bytes());
                     streams.push_back(s)
                 }),
                 Err(err) => {

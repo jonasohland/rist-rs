@@ -5,9 +5,11 @@ use crate::util;
 use rist_rs_buffers::stream::message::MessageStreamPeerAddress;
 use rist_rs_buffers::stream::message::NonBlockingMessageStream;
 use rist_rs_buffers::stream::message::NonBlockingMessageStreamAcceptor;
+use rist_rs_buffers::stream::message::NonBlockingMessageStreamConnector;
+use rist_rs_core::traits::io::ReceiveFromNonBlocking;
 use rist_rs_core::traits::io::ReceiveNonBlocking;
 use rist_rs_core::traits::io::SendNonBlocking;
-use rist_rs_core::traits::io::{ReceiveFromNonBlocking, SendToNonBlocking};
+use rist_rs_core::traits::io::SendToNonBlocking;
 
 use std::borrow::Borrow;
 use std::collections::LinkedList;
@@ -62,32 +64,33 @@ where
 }
 
 /// States of the DTLS shutdown process
-enum ShutdownState {
+#[derive(Clone, Copy, Debug)]
+pub enum ShutdownState {
     /// The stream is active and not shut-down
     Active,
 
-    /// Shutdown message is sent
-    Sent,
+    /// Shutdown message is sent or an initial shutdown message was received
+    ShuttingDown,
 
-    /// Shutdown reply was received, the stream is shut down
-    Received,
+    /// Shutdown complete
+    Shutdown,
 }
 
 impl From<ssl::ShutdownResult> for ShutdownState {
     fn from(res: ssl::ShutdownResult) -> Self {
         match res {
-            ssl::ShutdownResult::Sent => ShutdownState::Sent,
-            ssl::ShutdownResult::Received => ShutdownState::Received,
+            ssl::ShutdownResult::Sent => ShutdownState::ShuttingDown,
+            ssl::ShutdownResult::Received => ShutdownState::Shutdown,
         }
     }
 }
 
 impl ShutdownState {
-    fn is_shutdown(&self) -> bool {
-        matches!(self, ShutdownState::Received)
+    pub fn is_shutdown(&self) -> bool {
+        matches!(self, ShutdownState::Shutdown)
     }
 
-    fn is_active(&self) -> bool {
+    pub fn is_active(&self) -> bool {
         matches!(self, ShutdownState::Active)
     }
 }
@@ -98,7 +101,6 @@ where
     A: MessageStreamPeerAddress,
 {
     inner: ssl::SslStream<StreamWrapper<A>>,
-    shutdown_state: ShutdownState,
 }
 
 impl<A> DtlsStream<A>
@@ -107,10 +109,7 @@ where
 {
     /// Creates a new, active Dtls stream
     fn new(inner: ssl::SslStream<StreamWrapper<A>>) -> Self {
-        Self {
-            inner,
-            shutdown_state: ShutdownState::Active,
-        }
+        Self { inner }
     }
 
     /// Convert a Ssl error to a non-blocking operation style result
@@ -134,18 +133,29 @@ where
         self.inner.get_ref().inner.peer_address()
     }
 
+    pub fn shutdown_state(&mut self) -> ShutdownState {
+        match self.inner.get_shutdown() {
+            k if k.contains(ssl::ShutdownState::RECEIVED | ssl::ShutdownState::SENT) => {
+                ShutdownState::Shutdown
+            }
+            k if k.intersects(ssl::ShutdownState::RECEIVED | ssl::ShutdownState::SENT) => {
+                ShutdownState::ShuttingDown
+            }
+            _ => ShutdownState::Active,
+        }
+    }
+
     /// Shut down the stream. This is a non-blocking operation that must be called multiple times
     /// until it returns a result
     pub fn shutdown(&mut self) -> Option<Result<(), DtlsStreamError>> {
-        if self.shutdown_state.is_active() {
+        if self.shutdown_state().is_active() {
             tracing::debug!(peer = ?self.peer_address(), "shutting down dtls stream");
         }
-        match self.shutdown_state {
-            ShutdownState::Active | ShutdownState::Sent => {
+        match self.shutdown_state() {
+            ShutdownState::Active | ShutdownState::ShuttingDown => {
                 match Self::ssl_err_to_non_blocking_result(self.inner.shutdown()) {
-                    Some(Ok(res)) => {
-                        self.shutdown_state = res.into();
-                        if self.shutdown_state.is_shutdown() {
+                    Some(Ok(_)) => {
+                        if self.shutdown_state().is_shutdown() {
                             tracing::debug!(peer = ?self.peer_address(), "stream shutdown complete");
                             Some(Ok(()))
                         } else {
@@ -156,7 +166,7 @@ where
                     None => None,
                 }
             }
-            ShutdownState::Received => Some(Ok(())),
+            ShutdownState::Shutdown => Some(Ok(())),
         }
     }
 
@@ -181,7 +191,7 @@ where
     A: MessageStreamPeerAddress,
 {
     fn drop(&mut self) {
-        if !self.shutdown_state.is_shutdown() {
+        if !self.shutdown_state().is_shutdown() {
             tracing::warn!(
                 "open dtls stream dropped, try sending shutdown message once and abort stream"
             );
@@ -249,7 +259,7 @@ impl From<openssl::ssl::Error> for DtlsStreamError {
 }
 
 /// A stream candidate used to keep state inside the stream acceptor
-enum DtlsAcceptCandidate<A>
+enum DtlsStreamCandidate<A>
 where
     A: MessageStreamPeerAddress,
 {
@@ -262,12 +272,17 @@ enum DtlsStreamCandidateError<A>
 where
     A: MessageStreamPeerAddress,
 {
-    InProgress(DtlsAcceptCandidate<A>),
+    InProgress(DtlsStreamCandidate<A>),
     Error(SslErrorStack, A),
     Failed(openssl::ssl::Error, A),
 }
 
-impl<A> DtlsAcceptCandidate<A>
+enum Direction {
+    Accept,
+    Connect,
+}
+
+impl<A> DtlsStreamCandidate<A>
 where
     A: MessageStreamPeerAddress,
 {
@@ -282,8 +297,8 @@ where
     /// Get the remote peer address
     fn peer_address(&self) -> A {
         match self {
-            DtlsAcceptCandidate::Candidate(state) => state.get_ref().inner.peer_address(),
-            DtlsAcceptCandidate::Ready(s) => s.inner.get_ref().inner.peer_address(),
+            DtlsStreamCandidate::Candidate(state) => state.get_ref().inner.peer_address(),
+            DtlsStreamCandidate::Ready(s) => s.inner.get_ref().inner.peer_address(),
         }
     }
 
@@ -292,34 +307,37 @@ where
         stream: NonBlockingMessageStream<A>,
         context: impl Borrow<ssl::SslContext>,
         mtu: usize,
+        direction: Direction,
     ) -> Result<Self, DtlsStreamError> {
-        match ssl::Ssl::new(context.borrow())
+        let ssl = ssl::Ssl::new(context.borrow())
             .and_then(|mut ssl| {
                 ssl.set_mtu(mtu as u32)?;
                 Ok(ssl)
             })
-            .map_err(DtlsStreamError::Library)?
-            .accept(StreamWrapper::new(stream))
-        {
+            .map_err(DtlsStreamError::Library)?;
+        match match direction {
+            Direction::Accept => ssl.accept(StreamWrapper::new(stream)),
+            Direction::Connect => ssl.connect(StreamWrapper::new(stream)),
+        } {
             Err(ssl::HandshakeError::WouldBlock(mid_handshake_stream)) => {
-                Ok(DtlsAcceptCandidate::Candidate(mid_handshake_stream))
+                Ok(DtlsStreamCandidate::Candidate(mid_handshake_stream))
             }
             Err(ssl::HandshakeError::Failure(e)) => Err(DtlsStreamError::Ssl(e.into_error())),
             Err(ssl::HandshakeError::SetupFailure(e)) => Err(DtlsStreamError::Library(e)),
-            Ok(stream) => Ok(DtlsAcceptCandidate::ready(DtlsStream::new(stream))),
+            Ok(stream) => Ok(DtlsStreamCandidate::ready(DtlsStream::new(stream))),
         }
     }
 
     /// Try accepting the stream by processing all pending events. This function must be called repeatedly until it
     /// returns a result
-    fn try_accept(self) -> Result<DtlsStream<A>, DtlsStreamCandidateError<A>> {
+    fn try_handshake(self) -> Result<DtlsStream<A>, DtlsStreamCandidateError<A>> {
         let peer = self.peer_address();
         match self {
             Self::Candidate(state) => match state.handshake() {
                 Ok(s) => Ok(DtlsStream::new(s)),
                 Err(ssl::HandshakeError::WouldBlock(returned_stream)) => {
                     Err(DtlsStreamCandidateError::InProgress(
-                        DtlsAcceptCandidate::candidate(returned_stream),
+                        DtlsStreamCandidate::candidate(returned_stream),
                     ))
                 }
                 Err(ssl::HandshakeError::SetupFailure(err)) => {
@@ -329,8 +347,92 @@ where
                     Err(DtlsStreamCandidateError::Failed(failed.into_error(), peer))
                 }
             },
-            DtlsAcceptCandidate::Ready(stream) => Ok(stream),
+            DtlsStreamCandidate::Ready(stream) => Ok(stream),
         }
+    }
+}
+
+struct DtlsStreamCandidateStore<Address>
+where
+    Address: MessageStreamPeerAddress,
+{
+    candidates: Option<LinkedList<(DtlsStreamCandidate<Address>, SystemTime)>>,
+}
+
+impl<A> DtlsStreamCandidateStore<A>
+where
+    A: MessageStreamPeerAddress,
+{
+    fn new() -> Self {
+        Self { candidates: None }
+    }
+
+    fn new_candidate(
+        &mut self,
+        context: impl Borrow<ssl::SslContext>,
+        stream: NonBlockingMessageStream<A>,
+        direction: Direction,
+    ) -> Option<io::Error> {
+        let now = SystemTime::now();
+        let peer = stream.peer_address();
+        match DtlsStreamCandidate::try_new(stream, context, 2500, direction) {
+            Ok(candidate) => {
+                tracing::debug!(?peer, "new dtls stream candidate");
+                self.candidates
+                    .get_or_insert_with(Default::default)
+                    .push_back((candidate, now));
+                None
+            }
+            Err(DtlsStreamError::Io(ioe)) => Some(ioe),
+            Err(DtlsStreamError::Library(error)) => {
+                tracing::warn!(?peer, ?error, "could not create new dtls stream candidate");
+                None
+            }
+            Err(DtlsStreamError::Ssl(error)) => {
+                tracing::info!(?peer, ?error, "dtls handshake failed");
+                None
+            }
+        }
+    }
+
+    fn run(&mut self) -> Option<Vec<DtlsStream<A>>> {
+        let now = SystemTime::now();
+        let mut output: Option<Vec<_>> = None;
+        self.candidates = self.candidates.take().map(|candidate_list| {
+                    // map the whole list to a new list with non-filtered candidates
+                    candidate_list
+                        .into_iter()
+                        .filter_map(|candidate| {
+                            // Filter timed-out candidates
+                            if now.duration_since(candidate.1).unwrap_or_else(|_| Duration::from_secs(0)) > Duration::from_secs(10) {
+                                tracing::debug!(peer = ?candidate.0.peer_address() ,"dtls handshake timed out");
+                                None
+                            }
+                            else {
+                                match candidate.0.try_handshake() {
+                                    Ok(stream) => {
+                                        tracing::debug!(peer = ?stream.peer_address(), "dtls connection accepted");
+                                        output.get_or_insert_with(Vec::new).push(stream);
+                                        None
+                                    }
+                                    Err(DtlsStreamCandidateError::InProgress(stream)) => Some((stream, candidate.1)),
+                                    Err(DtlsStreamCandidateError::Error(error, peer)) => {
+                                        tracing::error!(
+                                            ?peer, ?error, msg = %error,
+                                            "dtls handshake failed because of an unexpected openssl error"
+                                        );
+                                        None
+                                    }
+                                    Err(DtlsStreamCandidateError::Failed(error, peer)) => {
+                                        tracing::info!(?peer, ?error, msg = %error, "dtls handshake failed");
+                                        None
+                                    }
+                                }
+                            }
+                        })
+                        .collect()
+                });
+        output
     }
 }
 
@@ -361,7 +463,7 @@ where
 {
     config: Config<ContextProvider>,
     acceptor: NonBlockingMessageStreamAcceptor<Stream, Address, AcceptErr>,
-    candidates: Option<LinkedList<(DtlsAcceptCandidate<Address>, SystemTime)>>,
+    candidates: DtlsStreamCandidateStore<Address>,
 }
 
 impl<Stream, Address, ContextProvider, ContextError, AcceptError>
@@ -379,16 +481,8 @@ where
         Self {
             config,
             acceptor: NonBlockingMessageStreamAcceptor::new(io, mtu),
-            candidates: None,
+            candidates: DtlsStreamCandidateStore::new(),
         }
-    }
-
-    /// Append a new candidate to the internal list
-    fn append_candidate(&mut self, candidate: DtlsAcceptCandidate<Address>) {
-        tracing::debug!(peer = ?candidate.peer_address(), "new dtls stream candidate");
-        self.candidates
-            .get_or_insert_with(Default::default)
-            .push_back((candidate, SystemTime::now()));
     }
 
     /// Accept new DTLS streams. This function will never block must be called repeatedly
@@ -397,33 +491,24 @@ where
         &mut self,
     ) -> Option<Result<Vec<DtlsStream<Address>>, DtlsStreamAcceptError<AcceptError, ContextError>>>
     {
-        let now = SystemTime::now();
-        match match loop {
-            match self.acceptor.accept().and_then(|s| match s {
-                Err(e) => Some(Err(DtlsStreamAcceptError::Accept(e))),
+        match loop {
+            match self.acceptor.accept().map(|s| match s {
+                Err(e) => Err(DtlsStreamAcceptError::Accept(e)),
                 Ok(stream) => match self.config.context_builder.context() {
-                    Err(ec) => Some(Err(DtlsStreamAcceptError::Context(ec))),
+                    Err(ec) => Err(DtlsStreamAcceptError::Context(ec)),
                     Ok(context) => {
-                        match DtlsAcceptCandidate::try_new(stream, context, self.acceptor.mtu()) {
-                            Ok(candidate) => Some(Ok(candidate)),
-                            Err(DtlsStreamError::Io(ioe)) => {
-                                Some(Err(DtlsStreamAcceptError::Io(ioe)))
-                            }
-                            Err(other) => {
-                                tracing::info!(error = ?other, "dtls handshake aborted");
-                                None
-                            }
+                        match self
+                            .candidates
+                            .new_candidate(context, stream, Direction::Accept)
+                        {
+                            Some(e) => Err(DtlsStreamAcceptError::Io(e)),
+                            None => Ok(()),
                         }
                     }
                 },
             }) {
-                Some(result) => match result {
-                    Ok(candidate) => {
-                        self.append_candidate(candidate);
-                        continue;
-                    }
-                    Err(e) => break Some(e),
-                },
+                Some(Ok(_)) => continue,
+                Some(Err(err)) => break Some(err),
                 None => break None,
             }
         } {
@@ -431,50 +516,89 @@ where
             Some(err) => Some(Err(err)),
 
             // No error was returned from the accept() loop, start processing candidate events
-            None => {
-                let mut output: Option<Vec<_>> = None;
-                self.candidates = self.candidates.take().map(|candidate_list| {
-                    // map the whole list to a new list with non-filtered candidates
-                    candidate_list
-                        .into_iter()
-                        .filter_map(|candidate| {
-                            // Filter timed-out candidates
-                            if now.duration_since(candidate.1).unwrap_or_else(|_| Duration::from_secs(0)) > Duration::from_secs(10) {
-                                tracing::debug!(peer = ?candidate.0.peer_address() ,"dtls handshake timed out");
-                                None
-                            }
-                            else {
-                                match candidate.0.try_accept() {
-                                    Ok(stream) => {
-                                        tracing::debug!(peer = ?stream.peer_address(), "dtls connection accepted");
-                                        output.get_or_insert_with(Vec::new).push(stream);
-                                        None
-                                    }
-                                    Err(DtlsStreamCandidateError::InProgress(stream)) => Some((stream, candidate.1)),
-                                    Err(DtlsStreamCandidateError::Error(error, peer)) => {
-                                        tracing::error!(
-                                            ?peer, ?error,
-                                            "dtls handshake failed because of an unexpected openssl error"
-                                        );
-                                        None
-                                    }
-                                    Err(DtlsStreamCandidateError::Failed(error, peer)) => {
-                                        tracing::info!(?peer, ?error, "dtls handshake failed");
-                                        None
-                                    }
-                                }
-                            }
-                        })
-                        .collect()
-                });
-                // return a list of accepted streams
-                Some(Ok(output))
-            }
-        } {
-            // Nothing was returned from the candidate event processing
-            None => None,
-            // Transpose the candidate event processing result into a the output type
-            Some(what) => what.transpose(),
+            None => self.candidates.run().map(Ok),
+        }
+    }
+}
+
+pub struct DtlsStreamConnector<Stream, Address, ContextProvider, ConnectError, ContextError>
+where
+    Address: MessageStreamPeerAddress,
+    Stream: ReceiveFromNonBlocking<Error = ConnectError, Address = Address>
+        + SendToNonBlocking<Error = ConnectError, Address = Address>,
+    ContextProvider: SslContextProvider<Error = ContextError>,
+{
+    config: Config<ContextProvider>,
+    connector: NonBlockingMessageStreamConnector<Stream, Address, ConnectError>,
+    candidates: DtlsStreamCandidateStore<Address>,
+}
+
+/// Error returned by the DTLS stream acceptor
+#[derive(Debug)]
+pub enum DtlsStreamConnectError<EN, EC>
+where
+    EN: Debug,
+    EC: Debug,
+{
+    /// The underlying stream acceptor returned an error
+    Connect(EN),
+
+    /// The context provider returned an error
+    Context(EC),
+
+    /// An IO error ocurred
+    Io(io::Error),
+}
+
+impl<Stream, Address, ContextProvider, ContextError, ConnectError>
+    DtlsStreamConnector<Stream, Address, ContextProvider, ConnectError, ContextError>
+where
+    ConnectError: Debug,
+    ContextError: Debug,
+    Address: MessageStreamPeerAddress,
+    Stream: ReceiveFromNonBlocking<Error = ConnectError, Address = Address>
+        + SendToNonBlocking<Error = ConnectError, Address = Address>,
+    ContextProvider: SslContextProvider<Error = ContextError>,
+{
+    /// Create a new DTLS stream acceptor
+    pub fn new(io: Stream, mtu: usize, config: Config<ContextProvider>) -> Self {
+        Self {
+            config,
+            connector: NonBlockingMessageStreamConnector::new(io, mtu),
+            candidates: DtlsStreamCandidateStore::new(),
+        }
+    }
+
+    pub fn add(
+        &mut self,
+        address: impl Borrow<Address>,
+    ) -> Option<Result<(), DtlsStreamConnectError<ConnectError, ContextError>>> {
+        self.config
+            .context_builder
+            .context()
+            .map_err(DtlsStreamConnectError::Context)
+            .and_then(|ctx| {
+                match self
+                    .candidates
+                    .new_candidate(ctx, self.connector.connect(address), Direction::Connect)
+                    .map(DtlsStreamConnectError::Io)
+                {
+                    Some(e) => Err(e),
+                    None => Ok(()),
+                }
+            })
+            .err()
+            .map(Err)
+    }
+
+    #[allow(clippy::type_complexity)]
+    pub fn try_connect(
+        &mut self,
+    ) -> Option<Result<Vec<DtlsStream<Address>>, DtlsStreamConnectError<ConnectError, ContextError>>>
+    {
+        match self.connector.run() {
+            Some(Err(e)) => Some(Err(DtlsStreamConnectError::Connect(e))),
+            _ => self.candidates.run().map(Ok),
         }
     }
 }
