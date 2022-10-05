@@ -411,7 +411,7 @@ where
                             else {
                                 match candidate.0.try_handshake() {
                                     Ok(stream) => {
-                                        tracing::debug!(peer = ?stream.peer_address(), "dtls connection accepted");
+                                        tracing::debug!(peer = ?stream.peer_address(), "dtls connection established");
                                         output.get_or_insert_with(Vec::new).push(stream);
                                         None
                                     }
@@ -533,14 +533,14 @@ where
     candidates: DtlsStreamCandidateStore<Address>,
 }
 
-/// Error returned by the DTLS stream acceptor
+/// Error returned by the DTLS stream connector
 #[derive(Debug)]
 pub enum DtlsStreamConnectError<EN, EC>
 where
     EN: Debug,
     EC: Debug,
 {
-    /// The underlying stream acceptor returned an error
+    /// The underlying stream connector returned an error
     Connect(EN),
 
     /// The context provider returned an error
