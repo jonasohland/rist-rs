@@ -1,0 +1,20 @@
+[package]
+edition = "2021"
+name    = "rist-rs-test"
+version = "0.0.1"
+
+[dependencies]
+bincode       = { version = "1.3" }
+rist-rs-core  = { path = "../rist-rs-core" }
+rist-rs-std   = { path = "../rist-rs-std" }
+rist-rs-types = { path = "../rist-rs-types" }
+tracing       = { version = "0.1" }
+
+[dev-dependencies]
+clap               = { version = "4.1", features = ["derive"] }
+tracing-subscriber = { version = "0.3" }
+
+[features]
+default    = ["log"]
+log        = ["tracing/log"]
+log-always = ["tracing/log-always"]

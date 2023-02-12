@@ -43,8 +43,8 @@ impl<'a> SenderReportMessageView<'a> {
         }
     }
 
-    pub fn ntp_timestamp(&self) -> rist_rs_core::time::ntp::Timestamp {
-        rist_rs_core::time::ntp::Timestamp::new(
+    pub fn ntp_timestamp(&self) -> rist_rs_types::time::ntp::Timestamp {
+        rist_rs_types::time::ntp::Timestamp::new(
             u32::from_be_bytes([
                 self.data[Self::NTP_MSB_OFFSET],
                 self.data[Self::NTP_MSB_OFFSET + 1],
@@ -95,7 +95,7 @@ impl<'a> SenderReportMessageView<'a> {
             .map(|slice| {
                 let arr: &'a [u8; 24] = slice
                     .try_into()
-                    .expect(rist_rs_core::internal::INTERNAL_ERR_PRE_VALIDATED);
+                    .expect(rist_rs_types::internal::INTERNAL_ERR_PRE_VALIDATED);
                 super::rx_report::ReceptionReportView::from(arr)
             })
     }

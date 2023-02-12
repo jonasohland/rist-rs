@@ -1,12 +1,12 @@
 [package]
-name = "rist-rs-sdp"
-version = "0.0.1"
 edition = "2021"
+name    = "rist-rs-sdp"
+version = "0.0.1"
 
 [dependencies]
 log = "0.3"
 nom = "7.1"
 
 [features]
+alloc   = []
 default = ["alloc"]
-alloc = []

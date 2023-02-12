@@ -31,7 +31,7 @@ impl<'a> EchoMessage<'a> {
         }
     }
 
-    pub fn timestamp() -> rist_rs_core::time::ntp::Timestamp {
+    pub fn timestamp() -> rist_rs_types::time::ntp::Timestamp {
         todo!()
     }
 }

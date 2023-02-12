@@ -38,17 +38,17 @@ async fn build_processor(
             ProcessorConfigs::Rx(cfg) => Processor::RxProcessor(
                 rx::RxProcessor::try_new(name.to_owned(), cfg, controller)
                     .await
-                    .context(format!("failed to build rx processor: {}", name))?,
+                    .context(format!("failed to build rx processor: {name}"))?,
             ),
             ProcessorConfigs::Splitter(cfg) => Processor::SplitterProcessor(
                 splitter::SplitterProcessor::try_new(name.to_owned(), cfg, controller)
                     .await
-                    .context(format!("failed to build splitter processor {}", name))?,
+                    .context(format!("failed to build splitter processor {name}"))?,
             ),
             ProcessorConfigs::Tx(cfg) => Processor::TxProcessor(
                 tx::TxProcessor::try_new(name.to_owned(), cfg, controller)
                     .await
-                    .with_context(|| format!("failed to build tx processor {}", name))?,
+                    .with_context(|| format!("failed to build tx processor {name}"))?,
             ),
             ProcessorConfigs::Drop(cfg) => generic::generic_processor!(
                 "drop",

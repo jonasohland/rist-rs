@@ -46,7 +46,7 @@ impl<'a> RangeNackMessage<'a> {
         self.data.chunks_exact(4).map(|slice| {
             let data: [u8; 4] = slice
                 .try_into()
-                .expect(rist_rs_core::internal::INTERNAL_ERR_PRE_VALIDATED);
+                .expect(rist_rs_types::internal::INTERNAL_ERR_PRE_VALIDATED);
             PacketRangeRequest::from(data)
         })
     }

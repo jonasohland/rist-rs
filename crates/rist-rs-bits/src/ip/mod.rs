@@ -32,13 +32,13 @@ impl<'a> TryFrom<&'a [u8]> for IpPacketView<'a> {
 }
 
 impl<'a> IpPacketView<'a> {
-    fn source_addr(&self) -> rist_rs_core::net::IpAddr {
+    fn source_addr(&self) -> rist_rs_types::net::IpAddr {
         match self {
             Self::V4(a) => a.source_addr().into(),
         }
     }
 
-    fn dest_addr(&self) -> rist_rs_core::net::IpAddr {
+    fn dest_addr(&self) -> rist_rs_types::net::IpAddr {
         match self {
             Self::V4(a) => a.dest_addr().into(),
         }

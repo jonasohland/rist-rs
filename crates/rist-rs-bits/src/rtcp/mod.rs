@@ -347,18 +347,18 @@ mod test {
             match p.report().unwrap() {
                 super::RTCPReportView::SDES(sdes) => {
                     for item in sdes {
-                        println!("{:?}", item);
+                        println!("{item:?}");
                     }
                 }
                 super::RTCPReportView::SR(sr) => {
                     println!("{:?}", sr.ntp_timestamp());
                     for report in sr.reception_reports() {
-                        println!("{:?}", report);
+                        println!("{report:?}");
                     }
                 }
                 super::RTCPReportView::RR(rr) => {
                     for report in rr.reception_reports() {
-                        println!("{:?}", report);
+                        println!("{report:?}");
                     }
                 }
                 super::RTCPReportView::APP(app) => {

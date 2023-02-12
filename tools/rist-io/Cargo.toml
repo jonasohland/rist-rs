@@ -1,6 +1,6 @@
 [package]
-name = "rist-io"
-version = "0.0.1"
 edition = "2021"
+name    = "rist-io"
+version = "0.0.1"
 
 [dependencies]

@@ -138,7 +138,7 @@ impl ControlProcessorState {
             if let Err(e) = proc_client
                 .build()
                 .await
-                .with_context(|| format!("failed to build processor '{}'", name))
+                .with_context(|| format!("failed to build processor '{name}'"))
             {
                 errs.push(e);
             }
@@ -158,7 +158,7 @@ impl ControlProcessorState {
             if let Err(e) = proc_client
                 .start()
                 .await
-                .with_context(|| format!("failed to start processor '{}'", name))
+                .with_context(|| format!("failed to start processor '{name}'"))
             {
                 errs.push(e);
             }
@@ -209,7 +209,7 @@ impl ControlProcessorState {
                         "startup failed, one or more processors were not started successfully:\n{}",
                         e.into_iter()
                             .enumerate()
-                            .map(|(i, e)| { format!("{}: {:?}", i, e) })
+                            .map(|(i, e)| { format!("{i}: {e:?}") })
                             .collect::<String>()
                     );
                     self.abort().await.unwrap();

@@ -137,7 +137,7 @@ where
     E: ParseError<&'a str> + FromExternalError<&'a str, Error>,
 {
     map_res(recognize(many1(alt((tag(":"), hex_digit1)))), |s: &str| {
-        println!("{:?}", s);
+        println!("{s:?}");
         s.parse::<Ipv6Addr>().map_err(|_| Error::General)
     })(input)
 }
@@ -445,11 +445,11 @@ b=AS:4396
 
     match sdp::<VerboseError<_>>(str2) {
         Ok(v) => {
-            println!("{:#?}", v);
+            println!("{v:#?}");
         }
         Err(e) => match e {
             nom::Err::Incomplete(incomplete) => {
-                println!("{:?}", incomplete);
+                println!("{incomplete:?}");
             }
             nom::Err::Error(err) => {
                 println!("err: {}", convert_error(str2, err))

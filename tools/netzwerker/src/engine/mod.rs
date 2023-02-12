@@ -41,6 +41,6 @@ impl Engine {
         self.processor_host
             .connect(destination, name, connector)
             .await
-            .with_context(|| format!("failed to connect input to {} from {}", destination, name))
+            .with_context(|| format!("failed to connect input to {destination} from {name}"))
     }
 }

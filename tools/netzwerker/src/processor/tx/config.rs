@@ -53,9 +53,8 @@ impl Config {
         if let Some(multicast) = &self.multicast {
             if let Some(interface) = multicast.interface {
                 tracing::debug!(?interface, "set outgoing multicast interface");
-                sock.set_multicast_if_v4(&interface).with_context(|| {
-                    format!("failed to set multicast interface ({})", interface)
-                })?;
+                sock.set_multicast_if_v4(&interface)
+                    .with_context(|| format!("failed to set multicast interface ({interface})"))?;
             }
         }
         Ok(sock)
@@ -79,8 +78,7 @@ impl Config {
                         sock.join_multicast_v4(&group, &interface)
                             .with_context(|| {
                                 format!(
-                                    "failed to join multicast group {} on interface {}",
-                                    group, interface
+                                    "failed to join multicast group {group} on interface {interface}"
                                 )
                             })?;
                     }

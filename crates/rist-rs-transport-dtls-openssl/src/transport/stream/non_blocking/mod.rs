@@ -2,14 +2,14 @@ use crate::transport::stream::Config;
 use crate::transport::stream::SslContextProvider;
 use crate::util;
 
-use rist_rs_buffers::stream::message::MessageStreamPeerAddress;
-use rist_rs_buffers::stream::message::NonBlockingMessageStream;
-use rist_rs_buffers::stream::message::NonBlockingMessageStreamAcceptor;
-use rist_rs_buffers::stream::message::NonBlockingMessageStreamConnector;
-use rist_rs_core::traits::io::ReceiveFromNonBlocking;
-use rist_rs_core::traits::io::ReceiveNonBlocking;
-use rist_rs_core::traits::io::SendNonBlocking;
-use rist_rs_core::traits::io::SendToNonBlocking;
+use rist_rs_types::traits::io::ReceiveFromNonBlocking;
+use rist_rs_types::traits::io::ReceiveNonBlocking;
+use rist_rs_types::traits::io::SendNonBlocking;
+use rist_rs_types::traits::io::SendToNonBlocking;
+use rist_rs_util::stream::message::MessageStreamPeerAddress;
+use rist_rs_util::stream::message::NonBlockingMessageStream;
+use rist_rs_util::stream::message::NonBlockingMessageStreamAcceptor;
+use rist_rs_util::stream::message::NonBlockingMessageStreamConnector;
 
 use std::borrow::Borrow;
 use std::collections::LinkedList;

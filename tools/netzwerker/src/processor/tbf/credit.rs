@@ -22,8 +22,7 @@ impl CreditCounter {
     pub fn update(&mut self) {
         if self.credit < self.size {
             let now = Instant::now();
-            self.credit = (self.credit
-                + (now - self.last_credit_update).as_secs_f64() * self.cps as f64)
+            self.credit = (self.credit + (now - self.last_credit_update).as_secs_f64() * self.cps)
                 .min(self.size);
             self.last_credit_update = now;
         }

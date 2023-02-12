@@ -7,7 +7,7 @@ use crate::{ctl::Controller, packet::Packet, util};
 use anyhow::{anyhow, Context, Result};
 use async_trait::async_trait;
 pub use config::Config;
-use rist_rs_core::collections::static_vec::StaticVec;
+use rist_rs_util::collections::static_vec::StaticVec;
 use std::{
     net::{IpAddr, SocketAddr},
     result,
@@ -198,7 +198,7 @@ impl RxProcessor {
         tracing::info!(address = %addr, "binding socket");
         UdpSocket::bind(addr)
             .await
-            .context(format!("failed to bind udp socket to: {}", addr))
+            .context(format!("failed to bind udp socket to: {addr}"))
     }
 
     /// Join the provided multicast groups on the socket and return it

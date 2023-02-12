@@ -1,24 +1,24 @@
 [package]
+edition = "2021"
 name    = "rist-rs-transport-dtls-openssl"
 version = "0.0.1"
-edition = "2021"
 
 [dependencies]
-rist-rs-core    = { path = "../rist-rs-core" }
-rist-rs-runtime = { path = "../rist-rs-runtime" }
-rist-rs-buffers = { path = "../rist-rs-buffers" }
 foreign-types   = { version = "0.3" }
 openssl         = { version = "0.10" }
+rist-rs-core    = { path = "../rist-rs-core" }
+rist-rs-types   = { path = "../rist-rs-types" }
+rist-rs-util    = { path = "../rist-rs-util" }
 tracing         = { version = "0.1" }
 
 [dev-dependencies]
 clap                = { version = "3", features = ["derive"] }
+rist-rs-std = { path = "../rist-rs-std" }
 tracing-subscriber  = { version = "0.3" }
-rist-rs-runtime-std = { path = "../rist-rs-runtime-std" }
 
 [features]
-default                  = ["log"]
-log                      = ["tracing/log"]
-log-always               = ["tracing/log-always"]
-openssl-vendored         = ["openssl/vendored"]
-ssl_no_verify_dont_warn  = []
+default                 = ["log"]
+log                     = ["tracing/log"]
+log-always              = ["tracing/log-always"]
+openssl-vendored        = ["openssl/vendored"]
+ssl_no_verify_dont_warn = []

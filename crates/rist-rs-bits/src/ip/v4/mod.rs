@@ -52,7 +52,7 @@ impl<'a> TryFrom<&'a [u8]> for Ipv4PacketView<'a> {
 impl<'a> Ipv4PacketView<'a> {
     /// Get the value of the header length field (IHL - Internet Header Length)
     pub fn header_len(&self) -> usize {
-        Ipv4PacketView::ihl(self.data).expect(rist_rs_core::internal::INTERNAL_ERR_PRE_VALIDATED)
+        Ipv4PacketView::ihl(self.data).expect(rist_rs_types::internal::INTERNAL_ERR_PRE_VALIDATED)
     }
 
     /// Get the value of the total length field
@@ -145,12 +145,12 @@ impl<'a> Ipv4PacketView<'a> {
     }
 
     /// Get the source address
-    pub fn source_addr(&self) -> rist_rs_core::net::Ipv4Addr {
+    pub fn source_addr(&self) -> rist_rs_types::net::Ipv4Addr {
         [self.data[12], self.data[13], self.data[14], self.data[15]].into()
     }
 
     /// Get the destination address
-    pub fn dest_addr(&self) -> rist_rs_core::net::Ipv4Addr {
+    pub fn dest_addr(&self) -> rist_rs_types::net::Ipv4Addr {
         [self.data[16], self.data[17], self.data[18], self.data[19]].into()
     }
 

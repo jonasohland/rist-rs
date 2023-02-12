@@ -5,7 +5,6 @@
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
-pub mod dtls;
 pub mod error;
 pub mod gre;
 pub mod ip;

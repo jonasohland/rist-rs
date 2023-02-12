@@ -27,9 +27,9 @@ pub struct Error {
 impl Display for Error {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match &self.kind {
-            ErrorKind::InvalidVersion(v) => write!(f, "Invalid Ip protocol version '{}'", v),
+            ErrorKind::InvalidVersion(v) => write!(f, "Invalid Ip protocol version '{v}'"),
             ErrorKind::WrongVersion(expected, got) => {
-                write!(f, "Wrong ip version, expected: {}, got: {}", expected, got)
+                write!(f, "Wrong ip version, expected: {expected}, got: {got}")
             }
             ErrorKind::NotEnoughData { need, got, field } => {
                 write!(f, "Not enough data to read value(s) from field [{}], need at least {} bytes, got {} bytes", **field, need, got)

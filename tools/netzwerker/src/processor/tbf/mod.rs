@@ -7,7 +7,7 @@ use crate::{
     ctl::Controller, engine::processors::DEFAULT_OUTPUT_LABEL, packet::Packet, processor::Connector,
 };
 use anyhow::Result;
-use rist_rs_core::{
+use rist_rs_util::{
     collections::static_vec_deque::StaticVecDeque, util::num::dec_spec::ser_de::DecSpecInt,
 };
 use serde::Deserialize;

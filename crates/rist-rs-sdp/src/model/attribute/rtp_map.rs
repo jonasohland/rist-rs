@@ -42,7 +42,7 @@ impl Attribute for RtpMap {
     fn encode(&self, writer: &mut impl core::fmt::Write) -> std::fmt::Result {
         write!(writer, "{} {}/{}", self.pt, self.enc_name, self.clock_rate)?;
         if let Some(RtpMapExt::AudioChannels(ch)) = self.ext {
-            write!(writer, "/{}", ch)?;
+            write!(writer, "/{ch}")?;
         }
         Ok(())
     }

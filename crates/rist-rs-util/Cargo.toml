@@ -1,0 +1,23 @@
+[package]
+edition = "2021"
+name    = "rist-rs-util"
+version = "0.0.1"
+
+[dependencies]
+hashbrown      = { version = "0.12", default-features = false, features = ["ahash"] }
+num-traits     = "0.2"
+rist-rs-macros = { path = "../rist-rs-macros" }
+rist-rs-types  = { path = "../rist-rs-types" }
+serde          = { version = "1.0", features = ["derive"], optional = true }
+tracing        = { version = "0.1", default-features = false }
+
+[dev-dependencies]
+rand               = "0.8"
+rist-rs-bits       = { path = "../rist-rs-bits" }
+tracing-subscriber = "0.3"
+
+[features]
+default = []
+log     = ["tracing/log"]
+serde   = ["dep:serde"]
+std     = ["rist-rs-types/std"]

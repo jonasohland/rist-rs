@@ -1,10 +1,10 @@
-use rist_rs_core::collections::static_vec::StaticVec;
-use rist_rs_core::traits::io::ReceiveNonBlocking;
-use rist_rs_runtime_std::transport::socket::NonBlockingUdpSocket;
+use rist_rs_std::transport::socket::NonBlockingUdpSocket;
 use rist_rs_transport_dtls_openssl::transport::stream::non_blocking::{
     DtlsStream, DtlsStreamConnector, DtlsStreamError,
 };
 use rist_rs_transport_dtls_openssl::transport::stream::{self, SimpleContextProvider};
+use rist_rs_types::traits::io::ReceiveNonBlocking;
+use rist_rs_util::collections::static_vec::StaticVec;
 
 use std::fs;
 use std::net::SocketAddr;

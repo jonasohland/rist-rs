@@ -1,3 +1,5 @@
+use crate::rist;
+
 pub mod error {
 
     #[derive(Debug, Clone, Copy)]
@@ -49,7 +51,7 @@ impl<'a> ReceiverReportMessageView<'a> {
         self.data[4..].chunks_exact(24).map(|slice| {
             let arr: &'a [u8; 24] = slice
                 .try_into()
-                .expect(rist_rs_core::internal::INTERNAL_ERR_PRE_VALIDATED);
+                .expect(rist_rs_types::internal::INTERNAL_ERR_PRE_VALIDATED);
             super::rx_report::ReceptionReportView::from(arr)
         })
     }

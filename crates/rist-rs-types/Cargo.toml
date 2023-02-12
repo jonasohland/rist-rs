@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name    = "rist-rs-types"
+version = "0.0.1"
+
+[dependencies]
+num-traits     = { version = "0.2", default-features = false }
+rist-rs-macros = { path = "../rist-rs-macros" }
+
+[features]
+default = []
+std     = []

@@ -1,15 +1,15 @@
 [workspace]
 members = [
     "crates/rist-rs-bits",
-    "crates/rist-rs-buffers",
+    "crates/rist-rs-util",
     "crates/rist-rs-core",
-    "crates/rist-rs-runtime",
+    "crates/rist-rs-types",
     "crates/rist-rs-macros",
-    "crates/rist-rs-runtime-std",
+    "crates/rist-rs-std",
     "crates/rist-rs-transport-dtls-openssl",
-    "crates/rist-rs-runtime-tokio",
+    "crates/rist-rs-tokio",
     "crates/rist-rs-sdp",
-    "crates/rist-rs-rtp",
+    "crates/rist-rs-test",
     "tools/netzwerker",
     "tools/rist-io",
 ]

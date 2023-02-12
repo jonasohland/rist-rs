@@ -1,4 +1,4 @@
-use rist_rs_buffers::stream::message::NonBlockingMessageStreamError;
+use rist_rs_util::stream::message::NonBlockingMessageStreamError;
 use std::io;
 
 /// Converts the result of a NonBlockingMessageStream result to an std::io result

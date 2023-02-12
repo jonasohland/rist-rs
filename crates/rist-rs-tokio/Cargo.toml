@@ -1,0 +1,16 @@
+[package]
+edition = "2021"
+name    = "rist-rs-tokio"
+version = "0.0.1"
+
+[dependencies]
+futures-channel = { version = "0.3" }
+rist-rs-core    = { path = "../rist-rs-core", features = ["std"] }
+slab            = { version = "0.4" }
+tokio           = { version = "1.25", features = ["net", "time"] }
+tracing         = { version = "0.1" }
+
+[features]
+default    = ["log"]
+log        = ["tracing/log"]
+log-always = ["tracing/log-always"]

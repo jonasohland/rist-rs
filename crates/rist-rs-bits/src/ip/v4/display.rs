@@ -32,7 +32,7 @@ impl<'a> Display for super::Ipv4PacketView<'a> {
                 }
                 Err(e) => {
                     writeln!(f, "    Ipv4Options (? bytes) {{")?;
-                    writeln!(f, "        [broken: {}]", e)?;
+                    writeln!(f, "        [broken: {e}]")?;
                     writeln!(f, "    }}")?;
                 }
             }

@@ -199,9 +199,9 @@ mod test {
         println!("{}", gre.version());
         println!(
             "{:?}",
-            gre.checksum().map(|s| s.map(|k| format!("{:#02x}", k)))
+            gre.checksum().map(|s| s.map(|k| format!("{k:#02x}")))
         );
-        println!("{:?}", gre.key().map(|s| s.map(|k| format!("{:#04x}", k))));
+        println!("{:?}", gre.key().map(|s| s.map(|k| format!("{k:#04x}"))));
         println!("{:?}", gre.sequence_number());
         println!("{:?}", gre.payload());
         println!(

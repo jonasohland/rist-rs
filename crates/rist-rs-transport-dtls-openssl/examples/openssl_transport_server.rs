@@ -1,7 +1,7 @@
-use rist_rs_core::traits::io::SendNonBlocking;
-use rist_rs_runtime_std::transport::socket::NonBlockingUdpSocket;
+use rist_rs_std::transport::socket::NonBlockingUdpSocket;
 use rist_rs_transport_dtls_openssl::transport::stream::non_blocking::DtlsStreamAcceptor;
 use rist_rs_transport_dtls_openssl::transport::stream::{self, SimpleContextProvider};
+use rist_rs_types::traits::io::SendNonBlocking;
 
 use std::collections::LinkedList;
 use std::fs;
