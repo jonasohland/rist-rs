@@ -11,8 +11,8 @@ PROJECT_DIR="$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd)"
 
 function install_git_hook_wrapper() {
     echo "Install $(bold "${1}") hook"
-    cp -f "${PROJECT_DIR}/scripts/git/resources/${1}.sh" "${PROJECT_DIR}/.git/hooks/${1}" 
-    chmod +x "${PROJECT_DIR}/.git/hooks/${1}" 
+    cp -f "${PROJECT_DIR}/scripts/git/resources/${1}.sh" "${PROJECT_DIR}/.git/hooks/${1}"
+    chmod +x "${PROJECT_DIR}/.git/hooks/${1}"
 }
 
 function install_hook_scripts() {
