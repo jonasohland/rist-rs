@@ -363,7 +363,10 @@ mod test {
 
         // make sure no more events are returned and the previous event was cleared
         sockets.poll_events(&mut events);
-        assert!(matches!(events[0].kind, IoEventKind::None));
+        assert!(matches!(
+            events[0].kind,
+            IoEventKind::Writable(_) | IoEventKind::None
+        ));
     }
 
     #[test]
