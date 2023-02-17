@@ -55,7 +55,6 @@ impl<'de, N: FromDecSpecInt<N>> Deserialize<'de> for DecSpecInt<N> {
             {
                 self.visit_i128(v as i128)
             }
-            
         }
         deserializer
             .deserialize_any(DecSpecIntVisitor(PhantomData))
