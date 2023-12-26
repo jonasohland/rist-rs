@@ -108,7 +108,7 @@ mod test {
     #[test]
     fn zero_rate() {
         let rate = Rate::from((1234, 0));
-        assert!(matches!(rate.to_f64_checked(), None));
+        assert!(rate.to_f64_checked().is_none());
     }
 
     #[test]

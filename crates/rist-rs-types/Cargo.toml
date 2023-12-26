@@ -5,6 +5,7 @@ version = "0.0.1"
 
 [dependencies]
 num-traits     = { version = "0.2", default-features = false }
+bitflags       = { version = "2.4", default-features = false }
 rist-rs-macros = { path = "../rist-rs-macros" }
 
 [features]

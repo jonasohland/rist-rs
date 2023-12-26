@@ -4,18 +4,19 @@ name    = "rist-rs-std"
 version = "0.0.1"
 
 [dependencies]
+bitflags                       = "2.4"
 rand                           = "0.8"
 rist-rs-core                   = { path = "../rist-rs-core", features = ["std"] }
-rist-rs-transport-dtls-openssl = { path = "../rist-rs-transport-dtls-openssl", optional = true }
 rist-rs-types                  = { path = "../rist-rs-types", features = ["std"] }
 rist-rs-util                   = { path = "../rist-rs-util", features = ["std"] }
 socket2                        = { version = "0.4" }
+slab                           = { version = "0.4" }
+mio                            = { version = "0.8", features = ["net", "os-poll"] }
 tracing                        = { version = "0.1", default-features = false }
 
 [dev-dependencies]
 tracing-subscriber = { version = "0.3" }
 
 [features]
-default = ["openssl"]
+default = []
 log     = ["tracing/log"]
-openssl = ["rist-rs-transport-dtls-openssl"]

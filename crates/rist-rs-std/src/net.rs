@@ -1,472 +1,267 @@
 #![allow(unused)]
+use mio::{Poll, Token};
+use rist_rs_types::traits::protocol::{self, Ctl, Events, ReadyFlags, IOV};
 use std::collections::hash_map::{DefaultHasher, Entry};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
+use std::os::fd::{AsRawFd, FromRawFd};
 
-use crate::{IoEvent, IoEventKind};
+use rist_rs_types::traits::runtime;
 
-#[derive(Clone, Copy, Hash, PartialEq, Eq)]
-pub struct SocketId(pub(crate) usize);
+use crate::StdRuntime;
 
-impl SocketId {
-    pub fn empty() -> SocketId {
-        SocketId(usize::MAX)
-    }
-
-    pub fn hash(&self) -> u64 {
-        let mut hasher = DefaultHasher::new();
-        self.0.hash(&mut hasher);
-        hasher.finish()
-    }
+pub(crate) struct NetIo {
+    poll: mio::Poll,
+    socks: slab::Slab<mio::net::UdpSocket>,
+    events: mio::Events,
 }
 
-impl Debug for SocketId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:x}", self.hash())
-    }
+fn map_ev_flags(ev: &mio::event::Event) -> ReadyFlags {
+    let mut out = ReadyFlags::empty();
+    out.set(ReadyFlags::Readable, ev.is_readable());
+    out.set(ReadyFlags::Writable, ev.is_writable());
+    out
 }
 
-impl Display for SocketId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:x}", self.hash())
-    }
-}
-
-struct LocalSocket {
-    socket: UdpSocket,
-    remotes: HashMap<SocketAddr, usize>,
-}
-
-struct RemoteSocket {
-    local_socket_id: usize,
-    remote_address: SocketAddr,
-}
-
-pub struct Sockets {
-    num_local_sockets: usize,
-    num_remote_sockets: usize,
-    sockets: Vec<Option<LocalSocket>>,
-    remote_sockets: Vec<Option<RemoteSocket>>,
-}
-
-impl Sockets {
-    const SOCK_INDEX_PIVOT: usize = usize::MAX / 2;
-
-    pub fn new() -> Self {
-        Self {
-            num_local_sockets: 0,
-            num_remote_sockets: 0,
-            sockets: Default::default(),
-            remote_sockets: Default::default(),
-        }
+impl NetIo {
+    pub(crate) fn try_new() -> Result<Self, runtime::Error> {
+        Ok(Self {
+            poll: mio::Poll::new()?,
+            socks: slab::Slab::new(),
+            events: mio::Events::with_capacity(24),
+        })
     }
 
-    fn bind_non_blocking_socket(address: SocketAddr) -> Result<UdpSocket, io::Error> {
-        let socket = socket2::Socket::from(UdpSocket::bind(address)?);
-        socket.set_nonblocking(true)?;
-        Ok(socket.into())
+    pub(crate) fn bind(&mut self, addr: SocketAddr) -> Result<crate::Socket, runtime::Error> {
+        // bind the socket
+        let mut sock = mio::net::UdpSocket::bind(addr)?;
+
+        // add to slab
+        let sock_id = self.socks.insert(sock);
+
+        // register with poller
+        self.poll.registry().register(
+            self.socks.get_mut(sock_id).unwrap(),
+            Token(sock_id),
+            mio::Interest::WRITABLE | mio::Interest::READABLE,
+        );
+
+        let sock = crate::Socket::Net(sock_id);
+        tracing::trace!(%addr, ?sock, "udp bound");
+        Ok(sock)
     }
 
-    fn update_active_socket_count(&mut self) {
-        self.num_remote_sockets = self.remote_sockets.iter().filter(|s| s.is_some()).count();
-        self.num_local_sockets = self.sockets.iter().filter(|s| s.is_some()).count()
-    }
-
-    fn close_remote_socket(&mut self, socket: usize) {
-        let idx = socket - Self::SOCK_INDEX_PIVOT;
-        if idx <= self.remote_sockets.len() {
-            match self.remote_sockets[idx].take() {
-                Some(remote_socket) => match &mut self.sockets[remote_socket.local_socket_id] {
-                    Some(sock) => {
-                        tracing::trace!(remote_socket_address = %remote_socket.remote_address, remote_socket_index = idx, "removing remote socket entry");
-                        sock.remotes.remove(&remote_socket.remote_address);
-                    }
-                    None => {
-                        tracing::warn!(socket, "remote socket leaked");
-                    }
-                },
-                None => {
-                    tracing::warn!(socket, "orphaned socket closed");
-                }
-            }
-        }
-    }
-
-    fn close_local_socket(&mut self, socket: usize) {
-        if socket <= self.sockets.len() {
-            match self.sockets[socket].take() {
-                Some(local_socket) => {
-                    for (_, remote_socket) in local_socket.remotes {
-                        self.remote_sockets[remote_socket - Self::SOCK_INDEX_PIVOT].take();
-                    }
-                }
-                None => todo!(),
-            }
-        }
-    }
-
-    fn reserve_socket<S>(sockets: &mut Vec<Option<S>>) -> usize {
-        let mut idx = 0usize;
-        loop {
-            if idx == sockets.len() {
-                sockets.push(None);
-                break;
-            }
-            if sockets[idx].is_none() {
-                break;
-            }
-            idx += 1
-        }
-        idx
-    }
-
-    pub fn add(&mut self, socket: UdpSocket) -> io::Result<SocketId> {
-        let socket = socket2::Socket::from(socket);
-        socket.set_nonblocking(true)?;
-        let idx = Self::reserve_socket(&mut self.sockets);
-        self.sockets[idx] = Some(LocalSocket {
-            socket: socket.into(),
-            remotes: Default::default(),
-        });
-        self.update_active_socket_count();
-        Ok(SocketId(idx))
-    }
-
-    pub fn bind(&mut self, address: SocketAddr) -> io::Result<SocketId> {
-        let socket = Self::bind_non_blocking_socket(address)?;
-        let mut idx = Self::reserve_socket(&mut self.sockets);
-        self.sockets[idx] = Some(LocalSocket {
-            socket,
-            remotes: Default::default(),
-        });
-        self.update_active_socket_count();
-        Ok(SocketId(idx))
-    }
-
-    pub fn close(&mut self, socket: SocketId) {
-        if socket.0 >= Self::SOCK_INDEX_PIVOT {
-            self.close_remote_socket(socket.0)
-        } else {
-            self.close_local_socket(socket.0)
-        }
-        self.update_active_socket_count()
-    }
-
-    pub fn connect(
+    pub(crate) fn connect(
         &mut self,
-        local_socket_id: SocketId,
-        remote_address: SocketAddr,
-    ) -> io::Result<SocketId> {
-        let local_socket_id = local_socket_id.0;
-        match &mut self.sockets[local_socket_id] {
-            None => Err(io::Error::from(io::ErrorKind::InvalidInput)),
-            Some(socket_entry) => {
-                let idx = Self::reserve_socket(&mut self.remote_sockets);
-                let remote_socket_id = idx + Self::SOCK_INDEX_PIVOT;
-                tracing::trace!(%remote_address, remote_socket_index = idx, "insert new remote socket entry");
-                self.remote_sockets[idx] = Some(RemoteSocket {
-                    local_socket_id,
-                    remote_address,
-                });
-                socket_entry
-                    .remotes
-                    .insert(remote_address, remote_socket_id);
-                self.update_active_socket_count();
-                Ok(SocketId(remote_socket_id))
-            }
-        }
+        socket: usize,
+        addr: SocketAddr,
+    ) -> Result<(), runtime::Error> {
+        let sock = self
+            .socks
+            .get_mut(socket)
+            .ok_or(runtime::Error::InvalidInput)?;
+        sock.connect(addr).map_err(From::from)
     }
 
-    pub fn send_non_blocking(&self, remote_socket_id: SocketId, buf: &[u8]) -> io::Result<()> {
-        let remote_socket_id = remote_socket_id.0;
-        match self.remote_sockets[remote_socket_id - Self::SOCK_INDEX_PIVOT]
-            .as_ref()
-            .and_then(|remote| {
-                self.sockets[remote.local_socket_id]
-                    .as_ref()
-                    .map(|socket| (remote.remote_address, &socket.socket))
-            }) {
-            Some((addr, sock)) => sock.send_to(buf, addr).map(|_| ()),
-            None => Err(io::Error::from(io::ErrorKind::InvalidInput)),
-        }
+    pub(crate) fn send(&mut self, socket: usize, buf: &[u8]) -> Result<(), runtime::Error> {
+        let sock = self
+            .socks
+            .get_mut(socket)
+            .ok_or(runtime::Error::InvalidInput)?;
+        sock.send(buf).map_err(From::from).map(|_| ())
     }
 
-    pub fn poll_events(&mut self, events: &mut [IoEvent]) {
-        let reads_per_sock =
-            1.max((events.len() / self.num_local_sockets.max(1)) - self.num_remote_sockets);
-        let mut events_index = 0;
-        let remote_sockets = &mut self.remote_sockets;
-        for (local_socket_id, opt_socket_entry) in self.sockets.iter_mut().enumerate() {
-            if let Some(socket_entry) = opt_socket_entry {
-                for _ in 0..reads_per_sock {
-                    if events_index == events.len() {
-                        // event buffer already filled
-                        return;
-                    }
-                    let event = &mut events[events_index];
-                    match socket_entry.socket.recv_from(&mut event.buf) {
-                        Ok((len, remote_address)) => {
-                            event.len = len;
-                            event.socket = SocketId(local_socket_id).into();
-                            match socket_entry.remotes.entry(remote_address) {
-                                Entry::Occupied(entry) => {
-                                    event.kind =
-                                        IoEventKind::Readable(SocketId(*entry.get()).into())
-                                }
-                                Entry::Vacant(entry) => {
-                                    let remote_socket_index = Self::reserve_socket(remote_sockets);
-                                    tracing::trace!(%remote_address, remote_socket_index, "insert new remote socket entry");
-                                    let remote_socket_id =
-                                        remote_socket_index + Self::SOCK_INDEX_PIVOT;
-                                    entry.insert(remote_socket_id);
-                                    remote_sockets[remote_socket_index] = Some(RemoteSocket {
-                                        local_socket_id,
-                                        remote_address,
-                                    });
-                                    event.kind = IoEventKind::Accept(
-                                        remote_address.into(),
-                                        SocketId(remote_socket_id).into(),
-                                    )
-                                }
-                            }
-                        }
-                        Err(error) => {
-                            if error.kind() == io::ErrorKind::WouldBlock {
-                                break;
-                            } else {
-                                event.len = 0;
-                                event.socket = SocketId(local_socket_id).into();
-                                event.kind = IoEventKind::Error(error.into())
-                            }
-                        }
-                    }
-                    events_index += 1;
+    pub(crate) fn send_to(
+        &mut self,
+        socket: usize,
+        buf: &[u8],
+        addr: SocketAddr,
+    ) -> Result<(), runtime::Error> {
+        let sock = self
+            .socks
+            .get_mut(socket)
+            .ok_or(runtime::Error::InvalidInput)?;
+        sock.send_to(buf, addr).map_err(From::from).map(|_| ())
+    }
+
+    pub(crate) fn recv(&mut self, socket: usize, buf: &mut [u8]) -> Result<usize, runtime::Error> {
+        let sock = self
+            .socks
+            .get_mut(socket)
+            .ok_or(runtime::Error::InvalidInput)?;
+        sock.recv(buf).map_err(From::from)
+    }
+
+    pub(crate) fn recv_from(
+        &mut self,
+        socket: usize,
+        buf: &mut [u8],
+    ) -> Result<(usize, SocketAddr), runtime::Error> {
+        let sock = self
+            .socks
+            .get_mut(socket)
+            .ok_or(runtime::Error::InvalidInput)?;
+        sock.recv_from(buf).map_err(From::from)
+    }
+
+    pub(crate) fn map_event<C: protocol::Ctl>(
+        &self,
+        input: &mio::event::Event,
+    ) -> protocol::IOV<StdRuntime, C> {
+        match input {
+            ev if ev.is_error() => {
+                match self
+                    .socks
+                    .get(ev.token().0)
+                    .map(mio::net::UdpSocket::take_error)
+                {
+                    Some(Ok(Some(err))) => IOV::Error(crate::Socket::Net(ev.token().0), err.into()),
+                    any => IOV::Empty,
                 }
             }
-        }
-        for (i, socket) in self
-            .remote_sockets
-            .iter()
-            .enumerate()
-            .filter_map(|(i, remote_socket)| remote_socket.as_ref().map(|s| (i, s)))
-        {
-            if events_index == events.len() {
-                // event buffer already filled
-                return;
+            ev if ev.is_readable() || ev.is_writable() => {
+                IOV::Ready(crate::Socket::Net(ev.token().0), map_ev_flags(ev))
             }
-            events[events_index].len = 0;
-            events[events_index].socket = SocketId(socket.local_socket_id).into();
-            events[events_index].kind =
-                IoEventKind::Writable(SocketId(Self::SOCK_INDEX_PIVOT + i).into());
-            events_index += 1;
+            ev => {
+                tracing::error!(?ev, "unexpected event");
+                IOV::Empty
+            }
         }
-        for event in events.iter_mut().skip(events_index) {
-            event.reset();
+    }
+
+    pub(crate) fn poll<C: Ctl>(&mut self, events: &mut Events<StdRuntime, C>) {
+        // system poll
+        if let Err(err) = self.poll.poll(&mut self.events, None) {
+            tracing::error!(%err, "poll")
+        }
+
+        // copy events
+        for ev in self.events.iter() {
+            match self.map_event(ev) {
+                IOV::Empty => {}
+                ev => events.push(ev),
+            }
         }
     }
 }
 
 #[allow(unused)]
 mod test {
+    use std::{
+        net::{Ipv4Addr, SocketAddr, SocketAddrV4, UdpSocket},
+        str::{from_utf8, FromStr},
+    };
 
-    use super::{SocketId, Sockets};
-    use crate::testing::{self, BusyLoopTimeout};
-    use crate::{IoEvent, IoEventKind, Socket};
-    use std::net::{SocketAddr, SocketAddrV4, UdpSocket};
-    use std::time::Duration;
+    use rist_rs_types::traits::{
+        packet,
+        protocol::{self, ReadyFlags, IOV},
+        runtime,
+    };
+    use socket2::SockAddr;
 
-    pub fn expect_accept_event(events: &[IoEvent]) -> Option<&IoEvent> {
-        for event in events {
-            if let IoEventKind::Accept(remote_address, remote_socket_id) = event.kind {
-                return Some(event);
-            }
+    use crate::{Socket, StdRuntime};
+
+    use super::NetIo;
+
+    #[derive(Debug, Clone)]
+    struct TestCtl;
+
+    type Events = protocol::Events<StdRuntime, TestCtl>;
+
+    impl protocol::Ctl for TestCtl {
+        type Error = ();
+
+        type Output = ();
+
+        fn start() -> Self {
+            Self
         }
-        None
+
+        fn shutdown() -> Self {
+            Self
+        }
     }
 
-    #[test]
-    fn test_bind_connect_close() {
-        let mut sockets = Sockets::new();
-        let (port, socket) = testing::get_localhost_bound_socket();
-        drop(socket);
-        let socket = sockets
-            .bind(testing::sock_addr_localhost(port))
-            .expect("bind operation failed");
-        sockets.close(socket);
-        UdpSocket::bind(testing::sock_addr_localhost(port)).expect("port was not closed correctly");
-    }
-
-    #[test]
-    fn bind_accept() {
-        let mut events = IoEvent::allocate(1, 24);
-        let mut sockets = Sockets::new();
-        let (port, socket) = testing::get_localhost_bound_socket();
-        let socket = sockets.add(socket).unwrap();
-        let (test_port, test_socket) = testing::get_localhost_bound_socket();
-
-        // send a message to the listening socket
-        test_socket
-            .send_to(&[0x00], testing::sock_addr_localhost(port))
-            .unwrap();
-        let mut timeout = BusyLoopTimeout::new(Duration::from_secs(5));
+    fn poll_read_one(io: &mut NetIo) -> Vec<u8> {
+        let mut buf = [0; 8192];
+        let mut events = Events::new(1);
         loop {
-            sockets.poll_events(&mut events);
-            if let IoEventKind::Accept(remote_address, remote_socket_id) = &events[0].kind {
-                // received an 'Accept' event
-                assert_eq!(
-                    *remote_address,
-                    testing::sock_addr_localhost(test_port).into()
-                );
-                assert_eq!(events[0].socket, socket.into());
-                assert_eq!(events[0].len, 1);
+            io.poll(&mut events);
 
-                if let Socket::NetworkSocket(socket) = remote_socket_id {
-                    // close the remote socket
-                    sockets.close(*socket);
-                } else {
-                    panic!("invalid socket returned in io event")
+            if let protocol::IOV::Ready(Socket::Net(s), flags) = events.pop().unwrap() {
+                if flags.contains(ReadyFlags::Readable) {
+                    let len = io.recv(s, &mut buf).unwrap();
+                    return buf.split_at(len).0.into();
                 }
-                break;
-            }
-
-            if timeout.sleep() {
-                panic!("timeout")
             }
         }
-
-        // send another message
-        test_socket
-            .send_to(&[0x00], testing::sock_addr_localhost(port))
-            .unwrap();
-
-        // since the remote socket was closed we expect a another Accept event
-        let mut timeout = BusyLoopTimeout::new(Duration::from_secs(5));
-        loop {
-            sockets.poll_events(&mut events);
-            if let IoEventKind::Accept(remote_address, remote_socket_id) = &events[0].kind {
-                assert_eq!(
-                    *remote_address,
-                    testing::sock_addr_localhost(test_port).into()
-                );
-                assert_eq!(events[0].socket, socket.into());
-                assert_eq!(events[0].len, 1);
-                break;
-            }
-
-            if timeout.sleep() {
-                panic!("timeout")
-            }
-        }
-
-        // make sure no more events are returned and the previous event was cleared
-        sockets.poll_events(&mut events);
-        assert!(matches!(
-            events[0].kind,
-            IoEventKind::Writable(_) | IoEventKind::None
-        ));
     }
 
-    #[test]
-    fn accept_read() {
-        let mut events = IoEvent::allocate(1, 24);
-        let mut sockets = Sockets::new();
-        let (port, socket) = testing::get_localhost_bound_socket();
-        let socket = sockets.add(socket).unwrap();
-        let mut remote_socket = SocketId::empty();
-        let (test_port, test_socket) = testing::get_localhost_bound_socket();
-
-        // send a message to the listening socket
-        test_socket
-            .send_to(&[0x00], testing::sock_addr_localhost(port))
-            .unwrap();
-        let mut timeout = BusyLoopTimeout::new(Duration::from_secs(5));
+    fn poll_write_one(io: &mut NetIo, buf: &[u8], addr: SocketAddr) {
+        let mut events = Events::new(1);
         loop {
-            sockets.poll_events(&mut events);
-            if let IoEventKind::Accept(remote_address, remote_socket_id) = &events[0].kind {
-                // received an 'Accept' event
-                assert_eq!(
-                    *remote_address,
-                    testing::sock_addr_localhost(test_port).into()
-                );
-                assert_eq!(events[0].socket, socket.into());
-                assert_eq!(events[0].len, 1);
-                match *remote_socket_id {
-                    Socket::NetworkSocket(remote_socket_id) => {
-                        remote_socket = remote_socket_id;
-                    }
-                    _ => panic!("invalid socket returned in io event"),
+            io.poll(&mut events);
+
+            if let protocol::IOV::Ready(Socket::Net(s), flags) = events.pop().unwrap() {
+                if flags.contains(ReadyFlags::Writable) {
+                    io.send_to(s, buf, addr).unwrap();
+                    return;
                 }
-                break;
-            }
-
-            if timeout.sleep() {
-                panic!("timeout")
-            }
-        }
-
-        // send another message
-        test_socket
-            .send_to(&[0x00], testing::sock_addr_localhost(port))
-            .unwrap();
-
-        // since the remote socket was closed we expect a another Accept event
-        let mut timeout = BusyLoopTimeout::new(Duration::from_secs(5));
-        loop {
-            sockets.poll_events(&mut events);
-            if let IoEventKind::Readable(remote_socket_id) = &events[0].kind {
-                assert_eq!(*remote_socket_id, remote_socket.into());
-                assert_eq!(events[0].socket, socket.into());
-                assert_eq!(events[0].len, 1);
-                break;
-            }
-
-            if timeout.sleep() {
-                panic!("timeout")
             }
         }
     }
 
     #[test]
-    fn accept_reply() {
-        let mut events = IoEvent::allocate(1, 24);
-        let mut sockets = Sockets::new();
-        let (port, socket) = testing::get_localhost_bound_socket();
-        let socket = sockets.add(socket).unwrap();
-        let (ex_port, ex_socket) = testing::get_localhost_bound_socket();
-        ex_socket
-            .send_to(&[0x00], testing::sock_addr_localhost(port))
-            .unwrap();
-        let mut timeout = BusyLoopTimeout::new(Duration::from_secs(5));
-        loop {
-            sockets.poll_events(&mut events);
-            if let IoEventKind::Accept(remote_address, remote_socket_id) = &events[0].kind {
-                assert_eq!(
-                    *remote_address,
-                    testing::sock_addr_localhost(ex_port).into()
-                );
-                assert_eq!(events[0].socket, socket.into());
-                assert_eq!(events[0].len, 1);
-                match *remote_socket_id {
-                    Socket::NetworkSocket(remote_socket_id) => {
-                        sockets
-                            .send_non_blocking(remote_socket_id, &[0xff])
-                            .expect("send failed");
-                    }
-                    _ => panic!("invalid socket type returned in io event"),
-                }
-                break;
-            }
-            if timeout.sleep() {
-                panic!("timeout")
-            }
-        }
+    fn test_rx() {
+        let packet_out = [0u8];
+        let bind_addr: SocketAddr = "127.0.0.1:10220".parse().unwrap();
+        let mut io = NetIo::try_new().unwrap();
+        io.bind(bind_addr).unwrap();
+        let sender = UdpSocket::bind(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)).unwrap();
+        sender.send_to(&packet_out, bind_addr);
+        let packet_in = poll_read_one(&mut io);
+        assert_eq!(packet_out, packet_in.as_slice());
+    }
 
-        let mut buf = [0u8; 24];
-        let (len, addr) = ex_socket.recv_from(&mut buf).expect("receive failed");
-        assert_eq!(len, 1);
-        assert_eq!(addr, testing::sock_addr_localhost(port));
+    #[test]
+    fn test_tx() {
+        let packet_out = [0u8];
+        let bind_addr: SocketAddr = "127.0.0.1:10221".parse().unwrap();
+        let mut io = NetIo::try_new().unwrap();
+        let sock = UdpSocket::bind(bind_addr).unwrap();
+        io.bind(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)))
+            .unwrap();
+        poll_write_one(&mut io, &packet_out, bind_addr);
+        let mut packet_in = [0u8; 1];
+        sock.recv(&mut packet_in).unwrap();
+
+        assert_eq!(packet_in, packet_out);
+    }
+
+    #[test]
+    fn test_tx_would_block() {
+        let packet_out = [0u8; 1280];
+        let send_adr: SocketAddr = "100.100.100.100:10221".parse().unwrap();
+        let mut io = NetIo::try_new().unwrap();
+        let sock = io
+            .bind(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)))
+            .unwrap();
+        if let crate::Socket::Net(sock_id) = sock {
+            let mut events = Events::new(6);
+            loop {
+                match io.send_to(sock_id, &packet_out, send_adr) {
+                    Err(runtime::Error::WouldBlock) => break,
+                    Err(e) => panic!("{:?}", e),
+                    Ok(_) => {}
+                }
+            }
+
+            poll_write_one(&mut io, &packet_out, send_adr);
+        } else {
+            panic!("invalid socket type returned")
+        }
     }
 }

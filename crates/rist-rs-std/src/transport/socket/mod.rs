@@ -111,47 +111,4 @@ mod test {
 
     use super::*;
     use std::str::{from_utf8, FromStr};
-
-    #[test]
-    fn bind() {
-        drop(NonBlockingUdpSocket::bind(SocketAddr::from_str("0.0.0.0:0").unwrap()).unwrap());
-    }
-
-    #[test]
-    fn read_no_data() {
-        let mut socket =
-            NonBlockingUdpSocket::bind(SocketAddr::from_str("0.0.0.0:0").unwrap()).unwrap();
-        let mut buf = [];
-        // should not block and return no data
-        assert!(matches!(socket.try_recv(&mut buf), None));
-    }
-
-    #[test]
-    fn transmit_non_blocking() {
-        let rx_listen = SocketAddr::from_str("0.0.0.0:37702").unwrap();
-        let mut tx =
-            NonBlockingUdpSocket::bind(SocketAddr::from_str("0.0.0.0:0").unwrap()).unwrap();
-        let mut rx = NonBlockingUdpSocket::bind(rx_listen).unwrap();
-        tx.connect(rx_listen).unwrap();
-        let buf = "Hello!".as_bytes();
-        let mut rxbuf = vec![0u8; buf.len()];
-        match tx.try_send(buf) {
-            Some(r) => match r {
-                Ok(len) => assert_eq!(len, buf.len()),
-                Err(e) => panic!("{}", e),
-            },
-            _ => panic!(),
-        }
-        match rx.try_recv(&mut rxbuf) {
-            Some(r) => match r {
-                Ok(s) => {
-                    assert_eq!(s, buf.len());
-                    assert_eq!(from_utf8(&rxbuf).unwrap(), "Hello!")
-                }
-                Err(e) => panic!("{}", e),
-            },
-            _ => panic!(),
-        }
-        assert!(matches!(rx.try_recv(&mut rxbuf), None));
-    }
 }

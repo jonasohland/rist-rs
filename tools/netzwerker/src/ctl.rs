@@ -205,12 +205,14 @@ impl ControlProcessorState {
                     tracing::info!("all processors started")
                 }
                 Err(e) => {
+                    let errs = e
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, e)| format!("{i}: {e:?}"))
+                        .collect::<Vec<String>>();
                     tracing::error!(
-                        "startup failed, one or more processors were not started successfully:\n{}",
-                        e.into_iter()
-                            .enumerate()
-                            .map(|(i, e)| { format!("{i}: {e:?}") })
-                            .collect::<String>()
+                        ?errs,
+                        "startup failed, one or more processors were not started successfully",
                     );
                     self.abort().await.unwrap();
                 }

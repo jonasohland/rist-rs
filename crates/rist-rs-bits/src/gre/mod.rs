@@ -221,9 +221,9 @@ mod test {
         assert!(!gre.has_key());
         assert!(!gre.has_sequence());
         assert_eq!(gre.version(), 0);
-        assert!(matches!(gre.checksum(), None));
-        assert!(matches!(gre.sequence_number(), None));
-        assert!(matches!(gre.key(), None));
+        assert!(gre.checksum().is_none());
+        assert!(gre.sequence_number().is_none());
+        assert!(gre.key().is_none());
     }
 
     #[test]

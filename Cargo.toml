@@ -13,3 +13,4 @@ members = [
     "tools/netzwerker",
     "tools/rist-io",
 ]
+resolver = "2"

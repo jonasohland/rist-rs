@@ -150,7 +150,7 @@ fn broken_total_len() {
     ]);
 
     // broken total length -> no payload
-    assert!(matches!(ip.payload(), Err(_)));
+    assert!(ip.payload().is_err());
     // options still valid because header is valid
-    assert!(matches!(ip.options(), Ok(_)));
+    assert!(ip.options().is_ok());
 }

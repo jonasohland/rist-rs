@@ -179,7 +179,7 @@ fn reorder_basic() {
     test_init();
     let mut buf = TestReorderBuffer::<u32>::new(32);
     // push some unordered packets
-    send_seq(&mut buf, [4, 1, 2, 0, 5, 3].into_iter());
+    send_seq(&mut buf, [4, 1, 2, 0, 5, 3]);
     assert_eq!(buf.len(), 6);
     // get back ordered packets
     for i in 0..6u32 {
@@ -220,7 +220,7 @@ fn skip_and_drain_empty() {
     assert!(matches!(buf.next_event(), ReorderQueueEvent::NeedMore));
     // explicitly skip the missing packet (seq: 2) and get the next one
     assert_eq!(buf.skip_to_next().unwrap().sequence_number(), 3);
-    assert!(matches!(buf.skip_to_next(), None));
+    assert!(buf.skip_to_next().is_none());
     // now the buffer is drained
     assert!(buf.is_empty())
 }

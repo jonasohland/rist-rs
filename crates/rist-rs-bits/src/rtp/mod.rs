@@ -280,14 +280,11 @@ mod test {
     #[test]
     fn invalid() {
         // conversion from invalid length should fail
-        assert!(matches!(
-            RTPView::try_from(RTP_INVALID_LEN.as_slice()),
-            Err(_)
-        ));
+        assert!(RTPView::try_from(RTP_INVALID_LEN.as_slice()).is_err());
 
         let broken_padding = packet(&RTP_BROKEN_PADDING);
         assert!(broken_padding.has_padding());
-        assert!(matches!(broken_padding.payload(), Err(_)));
-        assert!(matches!(broken_padding.padding_len().unwrap(), Err(_)))
+        assert!(broken_padding.payload().is_err());
+        assert!(broken_padding.padding_len().unwrap().is_err())
     }
 }

@@ -3,7 +3,7 @@ use std::net::SocketAddr;
 use clap::Parser;
 use rist_rs_std::StdRuntime;
 use rist_rs_test::proto::SimpleProto;
-use rist_rs_types::traits::runtime::Runtime;
+use rist_rs_types::traits::runtime::{Runtime, SocketFlags};
 
 #[derive(clap::Parser)]
 struct Cli {
@@ -19,8 +19,10 @@ fn main() {
         .init();
 
     let cli = Cli::parse();
-    let mut runtime = StdRuntime::new();
-    let socket = runtime.bind(cli.bind.into()).unwrap();
+    let mut runtime = StdRuntime::try_new().unwrap();
+    let socket = runtime
+        .bind(cli.bind.into(), SocketFlags::RecvFrom)
+        .unwrap();
     let proto = SimpleProto::new(socket, cli.peer);
-    runtime.run_protocol(proto);
+    runtime.run(proto);
 }

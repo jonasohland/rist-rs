@@ -30,7 +30,7 @@ pub fn send_packet_to(seq: &mut Vec<Connector>, packet: Packet) {
             seq[1].send_packet(p2);
         } else {
             seq.iter_mut()
-                .zip(packet.into_iter())
+                .zip(packet)
                 .for_each(|(input, packet)| input.send_packet(packet));
         }
     } else {

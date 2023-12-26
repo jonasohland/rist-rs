@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use std::{
     collections::{hash_map::Entry, HashMap},
     net::SocketAddr,
@@ -5,11 +7,12 @@ use std::{
 };
 
 use rist_rs_types::traits::{
-    protocol::{Ctl, Protocol, ProtocolEvent},
-    runtime::{Runtime, RuntimeError, SocketAddr as TSocketAddr},
+    protocol::{Ctl, Protocol, ProtocolEvent, IOV},
+    runtime::{self, Runtime, SocketAddr as TSocketAddr},
     time::clock::{Clock, TimePoint},
 };
 
+#[derive(Debug, Clone)]
 pub struct SimpleProtoCtl;
 
 impl Ctl for SimpleProtoCtl {
@@ -84,8 +87,8 @@ where
                     > Duration::from_secs(10)
                 {
                     tracing::info!(remote_socket = %entry.key(), remote_address = %entry.get().address, "peer timed out");
-                    rt.close(entry.key().clone());
-                    drop(entry.remove());
+                    rt.close(*entry.key());
+                    entry.remove();
                     updated = true;
                 } else if now
                     .duration_since(entry.get().last_contact)
@@ -110,39 +113,13 @@ where
         remote_peer_list: &[SocketAddr],
         now: Option<<R::Clock as Clock>::TimePoint>,
     ) {
-        let now = now.unwrap_or_else(|| rt.get_default_clock().now());
-        let mut updated = false;
-        for peer in remote_peer_list {
-            if !self.peers.values().any(|s| s.address == (*peer).into()) {
-                let remote_address: R::SocketAddr = (*peer).into();
-                match rt.connect(self.local_socket.clone(), remote_address.clone()) {
-                    Ok(socket) => {
-                        tracing::info!(local_socket = %self.local_socket, remote_socket = %socket, %remote_address, "new peer from member list");
-                        updated = true;
-                        self.peers.insert(socket, Peer::new(now, remote_address));
-                    }
-                    Err(_) => todo!(),
-                }
-            }
-        }
-        if updated {
-            self.update_peer_list_message_cache(rt, Some(now));
-        }
     }
 
     fn build_peer_list<'a>(
         now: <R::Clock as Clock>::TimePoint,
         peers: impl Iterator<Item = &'a Peer<R>>,
     ) -> Vec<SocketAddr> {
-        peers
-            .filter(|peer| {
-                now.duration_since(peer.last_contact)
-                    .unwrap_or(Duration::MAX)
-                    < Duration::from_secs(3)
-            })
-            .filter_map(|peer| peer.address.network_address())
-            .cloned()
-            .collect()
+        vec![]
     }
 
     fn update_peer_list_message_cache(
@@ -150,13 +127,6 @@ where
         rt: &mut R,
         now: Option<<R::Clock as Clock>::TimePoint>,
     ) {
-        let now = now.unwrap_or_else(|| rt.get_default_clock().now());
-        self.peer_list_message =
-            bincode::serialize(&Self::build_peer_list(now, self.peers.values())).unwrap();
-        tracing::debug!(
-            msg_len = self.peer_list_message.len(),
-            "refreshed peer list message cache"
-        );
     }
 
     fn peers_try_send(
@@ -165,10 +135,6 @@ where
         peers: &mut HashMap<R::Socket, Peer<R>>,
         buf: &[u8],
     ) {
-        let now = now.unwrap_or_else(|| rt.get_default_clock().now());
-        peers
-            .iter_mut()
-            .for_each(|(socket, peer)| Self::peer_try_send(rt, now, socket, peer, buf));
     }
 
     fn peer_try_send(
@@ -178,45 +144,14 @@ where
         peer: &mut Peer<R>,
         buf: &[u8],
     ) {
-        if peer.blocked
-            || now.duration_since(peer.last_send).unwrap_or(Duration::MAX)
-                > Duration::from_millis(300)
-        {
-            match rt.send(socket.clone(), buf) {
-                Ok(_) => {
-                    peer.last_send = now;
-                    peer.blocked = false;
-                }
-                Err(error) if error.is_not_ready() => {
-                    peer.blocked = true;
-                }
-                Err(error) => {
-                    tracing::error!(?error, %socket, "failed to send message");
-                }
-            }
-        }
     }
 
     fn add_start_peers(
         &mut self,
-        rt: &mut R,
-        peers: &Vec<SocketAddr>,
-        now: Option<<R::Clock as Clock>::TimePoint>,
+        _: &mut R,
+        _: &Vec<SocketAddr>,
+        _: Option<<R::Clock as Clock>::TimePoint>,
     ) {
-        let now = now.unwrap_or_else(|| rt.get_default_clock().now());
-        for peer in peers {
-            if !self.peers.values().any(|s| s.address == (*peer).into()) {
-                let remote_address: R::SocketAddr = (*peer).into();
-                match rt.connect(self.local_socket.clone(), remote_address.clone()) {
-                    Ok(socket) => {
-                        tracing::info!(local_socket = %self.local_socket, remote_socket = %socket, %remote_address, "new peer from initial member list");
-                        self.peers.insert(socket, Peer::new(now, remote_address));
-                    }
-                    Err(_) => todo!(),
-                }
-            }
-        }
-        self.update_peer_list_message_cache(rt, Some(now));
     }
 }
 
@@ -226,27 +161,17 @@ where
 {
     type Ctl = SimpleProtoCtl;
 
+    fn run(&mut self, rt: &mut R, _iov: &[IOV<R, Self::Ctl>]) -> ProtocolEvent<R> {
+        todo!()
+    }
+
+    /*
+
     fn ctl(&mut self, rt: &mut R, _: Self::Ctl) -> Result<(), ()> {
         if let Some(peers) = self.start_peers.take() {
             self.add_start_peers(rt, &peers, None);
         }
         Ok(())
-    }
-
-    fn accept(
-        &mut self,
-        rt: &mut R,
-        local_socket: <R as Runtime>::Socket,
-        remote_socket: <R as Runtime>::Socket,
-        remote_address: <R as Runtime>::SocketAddr,
-    ) -> ProtocolEvent<R> {
-        tracing::info!(%local_socket, %remote_socket, %remote_address, "new peer");
-        let now = rt.get_default_clock().now();
-        self.peers
-            .insert(remote_socket, Peer::new(now, remote_address));
-        self.cleanup_dead_peers(rt, Some(now));
-        self.update_peer_list_message_cache(rt, Some(now));
-        ProtocolEvent::asap(&rt.get_default_clock())
     }
 
     fn receive(
@@ -287,4 +212,6 @@ where
         self.cleanup_dead_peers(rt, None);
         ProtocolEvent::asap(&rt.get_default_clock())
     }
+
+    */
 }
