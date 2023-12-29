@@ -28,7 +28,7 @@ pub mod error {
 
 #[derive(Debug, Clone, Copy)]
 pub enum MessageView<'a> {
-    Rist(rist::RistApplicationSpecificMessage<'a>),
+    Rist(rist::RistApplicationSpecificMessageView<'a>),
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -96,7 +96,7 @@ impl<'a> ApplicationSpecificMessageView<'a> {
             .map_err(error::Error::from)
             .and_then(|name| match name {
                 "RIST" => Ok(MessageView::Rist(
-                    rist::RistApplicationSpecificMessage::try_new(
+                    rist::RistApplicationSpecificMessageView::try_new(
                         self.subtype(),
                         &self.data[Self::DATA_OFFSET..],
                     )?,

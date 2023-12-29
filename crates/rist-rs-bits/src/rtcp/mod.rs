@@ -295,6 +295,10 @@ impl<'a> Iterator for RTCPPacketViewIterator<'a> {
 
 #[allow(unused)]
 mod test {
+    use core::ops::Sub;
+
+    use rist_rs_types::traits::time::clock::StdSystemClock;
+
     use super::RTCPPacketView;
     use crate::rtcp::RTCPPacketViewIterator;
 
@@ -340,6 +344,15 @@ mod test {
         0x69, 0x80, 0x27, 0xfa, 0x1a, 0x00, 0x00, 0x00, 0x00,
     ];
 
+    const LIBRIST_CAP: [u8; 80] = [
+        0x80, 0xc8, 0x00, 0x06, 0xfd, 0x76, 0xef, 0x38, 0xe9, 0x39, 0x48, 0x37, 0xe1, 0xb4, 0xb5,
+        0xfb, 0xba, 0x82, 0xf5, 0x93, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x81, 0xca,
+        0x00, 0x06, 0xfd, 0x76, 0xef, 0x38, 0x01, 0x10, 0x6a, 0x6f, 0x6e, 0x61, 0x73, 0x2d, 0x74,
+        0x6f, 0x77, 0x65, 0x72, 0x2d, 0x61, 0x72, 0x63, 0x68, 0x00, 0x00, 0x82, 0xcc, 0x00, 0x05,
+        0xfd, 0x76, 0xef, 0x38, 0x52, 0x49, 0x53, 0x54, 0x83, 0xab, 0xe1, 0x3e, 0x2f, 0x1c, 0xdf,
+        0xdf, 0x00, 0x00, 0x00, 0x00,
+    ];
+
     #[test]
     fn test() {
         for packet_res in RTCPPacketViewIterator::new(&RR_WITH_SDES) {
@@ -365,6 +378,37 @@ mod test {
                     println!("{:?} - {:?}", app.name(), app.message())
                 }
                 _ => {}
+            }
+        }
+    }
+
+    #[test]
+    fn test_librist_cap() {
+        for packet_res in RTCPPacketViewIterator::new(&LIBRIST_CAP) {
+            match packet_res.unwrap().report().unwrap() {
+                super::RTCPReportView::SR(sr) => {
+                    println!(
+                        "{:?}",
+                        sr.ntp_timestamp()
+                            .to_instant::<StdSystemClock>()
+                            .elapsed()
+                            .unwrap()
+                    );
+                }
+                super::RTCPReportView::RR(_) => {}
+                super::RTCPReportView::SDES(_) => {}
+                super::RTCPReportView::APP(app) => match app.message().unwrap() {
+                    super::app::MessageView::Rist(rist) => match rist {
+                        super::app::rist::RistApplicationSpecificMessageView::RTTEchoRequest(
+                            req,
+                        ) => {}
+                        super::app::rist::RistApplicationSpecificMessageView::RTTEchoResponse(
+                            res,
+                        ) => {}
+                        super::app::rist::RistApplicationSpecificMessageView::RangeNack(nack) => {}
+                    },
+                },
+                super::RTCPReportView::NACK() => {}
             }
         }
     }

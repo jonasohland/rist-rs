@@ -15,7 +15,7 @@ pub trait TimePoint:
     + Clone
     + Copy
     + Send
-    + Add<Duration>
+    + Add<Duration, Output = Self>
     + AddAssign<Duration>
     + Sub<Duration>
     + Debug
@@ -63,54 +63,13 @@ pub trait Clock: Clone + Send + 'static {
 
     /// Returns true if the clocks time is monotonically increasing
     fn is_monotonic(&self) -> bool;
+
+    fn epoch() -> Self::TimePoint;
 }
 
 cfg_std! {
 
-    use std::time::{Instant, SystemTime, SystemTimeError};
-
-    /// A monotonic clock, available with the std feature enabled
-    #[derive(Clone)]
-    pub struct StdMonotonicClock;
-
-    impl Clock for StdMonotonicClock {
-
-        type TimePoint = Instant;
-
-        fn immediate(&self) -> Self::TimePoint {
-            self.now()
-        }
-
-        fn now(&self) -> Self::TimePoint {
-            Instant::now()
-        }
-
-        fn is_monotonic(&self) -> bool {
-            true
-        }
-
-    }
-
-    impl TimePoint for std::time::Instant {
-
-        type Error = std::convert::Infallible;
-
-        fn duration_since(&self, earlier: Self) -> Result<Duration, Self::Error> {
-            Ok(self.duration_since(earlier))
-        }
-
-        fn saturating_duration_since(&self, earlier: Self) -> Duration {
-            self.saturating_duration_since(earlier)
-        }
-
-        fn checked_add(&self, duration: Duration) -> Option<Self> {
-            self.checked_add(duration)
-        }
-
-        fn checked_sub(&self, duration: Duration) -> Option<Self> {
-            self.checked_sub(duration)
-        }
-    }
+    use std::time::{SystemTime, SystemTimeError};
 
     /// System clock, not steady, might drift or jump
     #[derive(Clone)]
@@ -130,6 +89,10 @@ cfg_std! {
 
         fn is_monotonic(&self) -> bool {
             false
+        }
+
+        fn epoch() -> Self::TimePoint {
+            std::time::UNIX_EPOCH
         }
     }
 

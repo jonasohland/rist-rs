@@ -9,13 +9,17 @@ pub mod error {
 pub const SUBTYPE_RANGE_NACK: u8 = 0;
 
 #[derive(Debug, Clone, Copy)]
-pub struct RangeNackMessage<'a> {
+pub struct RangeNackMessageView<'a> {
     data: &'a [u8],
 }
 
 pub struct PacketRangeRequest {
     pub seq_start: u16,
     pub count: u16,
+}
+
+pub struct RangeNackMessage {
+    requests: Vec<PacketRangeRequest>,
 }
 
 impl From<[u8; 4]> for PacketRangeRequest {
@@ -27,7 +31,7 @@ impl From<[u8; 4]> for PacketRangeRequest {
     }
 }
 
-impl<'a> RangeNackMessage<'a> {
+impl<'a> RangeNackMessageView<'a> {
     pub fn try_new<T, U>(bytes: &'a T) -> Result<Self, error::Error>
     where
         T: AsRef<U> + ?Sized,
@@ -49,5 +53,11 @@ impl<'a> RangeNackMessage<'a> {
                 .expect(rist_rs_types::internal::INTERNAL_ERR_PRE_VALIDATED);
             PacketRangeRequest::from(data)
         })
+    }
+
+    pub fn unmarshal(&self) -> RangeNackMessage {
+        RangeNackMessage {
+            requests: self.requests().collect(),
+        }
     }
 }

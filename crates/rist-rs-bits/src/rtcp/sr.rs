@@ -1,3 +1,5 @@
+use crate::util::read_int;
+
 pub mod error {
 
     #[derive(Debug, Clone, Copy)]
@@ -45,46 +47,21 @@ impl<'a> SenderReportMessageView<'a> {
 
     pub fn ntp_timestamp(&self) -> rist_rs_types::time::ntp::Timestamp {
         rist_rs_types::time::ntp::Timestamp::new(
-            u32::from_be_bytes([
-                self.data[Self::NTP_MSB_OFFSET],
-                self.data[Self::NTP_MSB_OFFSET + 1],
-                self.data[Self::NTP_MSB_OFFSET + 2],
-                self.data[Self::NTP_MSB_OFFSET + 3],
-            ]),
-            u32::from_be_bytes([
-                self.data[Self::NTP_LSB_OFFSET],
-                self.data[Self::NTP_LSB_OFFSET + 1],
-                self.data[Self::NTP_LSB_OFFSET + 2],
-                self.data[Self::NTP_LSB_OFFSET + 3],
-            ]),
+            read_int!(self.data, u32, Self::NTP_MSB_OFFSET),
+            read_int!(self.data, u32, Self::NTP_LSB_OFFSET),
         )
     }
 
     pub fn rtp_timestamp(&self) -> u32 {
-        u32::from_be_bytes([
-            self.data[Self::RTP_TS_OFFSET],
-            self.data[Self::RTP_TS_OFFSET + 1],
-            self.data[Self::RTP_TS_OFFSET + 2],
-            self.data[Self::RTP_TS_OFFSET + 3],
-        ])
+        read_int!(self.data, u32, Self::RTP_TS_OFFSET)
     }
 
     pub fn packet_count(&self) -> u32 {
-        u32::from_be_bytes([
-            self.data[Self::PACKET_COUNT_OFFSET],
-            self.data[Self::PACKET_COUNT_OFFSET + 1],
-            self.data[Self::PACKET_COUNT_OFFSET + 2],
-            self.data[Self::PACKET_COUNT_OFFSET + 3],
-        ])
+        read_int!(self.data, u32, Self::PACKET_COUNT_OFFSET)
     }
 
     pub fn octet_count(&self) -> u32 {
-        u32::from_be_bytes([
-            self.data[Self::OCTET_COUNT_OFFSET],
-            self.data[Self::OCTET_COUNT_OFFSET + 1],
-            self.data[Self::OCTET_COUNT_OFFSET + 2],
-            self.data[Self::OCTET_COUNT_OFFSET + 3],
-        ])
+        read_int!(self.data, u32, Self::OCTET_COUNT_OFFSET)
     }
 
     pub fn reception_reports(

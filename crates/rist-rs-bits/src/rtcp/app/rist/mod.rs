@@ -1,3 +1,5 @@
+use self::{range_nack::RangeNackMessage, rtt::EchoMessage};
+
 pub mod range_nack;
 pub mod rtt;
 
@@ -25,13 +27,13 @@ pub mod error {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub enum RistApplicationSpecificMessage<'a> {
-    RTTEchoRequest(rtt::EchoMessage<'a>),
-    RTTEchoResponse(rtt::EchoMessage<'a>),
-    RangeNack(range_nack::RangeNackMessage<'a>),
+pub enum RistApplicationSpecificMessageView<'a> {
+    RTTEchoRequest(rtt::EchoMessageView<'a>),
+    RTTEchoResponse(rtt::EchoMessageView<'a>),
+    RangeNack(range_nack::RangeNackMessageView<'a>),
 }
 
-impl<'a> RistApplicationSpecificMessage<'a> {
+impl<'a> RistApplicationSpecificMessageView<'a> {
     pub fn try_new<T, U>(subtype: u8, bytes: &'a T) -> Result<Self, error::Error>
     where
         T: AsRef<U> + ?Sized,
@@ -39,16 +41,36 @@ impl<'a> RistApplicationSpecificMessage<'a> {
         &'a U: Into<&'a [u8]>,
     {
         match subtype {
-            range_nack::SUBTYPE_RANGE_NACK => Ok(RistApplicationSpecificMessage::RangeNack(
-                range_nack::RangeNackMessage::try_new(bytes)?,
+            range_nack::SUBTYPE_RANGE_NACK => Ok(RistApplicationSpecificMessageView::RangeNack(
+                range_nack::RangeNackMessageView::try_new(bytes)?,
             )),
-            rtt::SUBTYPE_RTT_ECHO_REQ => Ok(RistApplicationSpecificMessage::RTTEchoRequest(
-                rtt::EchoMessage::try_new(bytes)?,
+            rtt::SUBTYPE_RTT_ECHO_REQ => Ok(RistApplicationSpecificMessageView::RTTEchoRequest(
+                rtt::EchoMessageView::try_new(bytes)?,
             )),
-            rtt::SUBTYPE_RTT_ECHO_RES => Ok(RistApplicationSpecificMessage::RTTEchoResponse(
-                rtt::EchoMessage::try_new(bytes)?,
+            rtt::SUBTYPE_RTT_ECHO_RES => Ok(RistApplicationSpecificMessageView::RTTEchoResponse(
+                rtt::EchoMessageView::try_new(bytes)?,
             )),
             unknown => Err(error::Error::UnknownSubtype(unknown)),
         }
     }
+
+    pub fn unmarshal(&self) -> RistApplicationSpecificMessage {
+        match self {
+            RistApplicationSpecificMessageView::RTTEchoRequest(req) => {
+                RistApplicationSpecificMessage::RTTEchoRequest(req.unmarshal())
+            }
+            RistApplicationSpecificMessageView::RTTEchoResponse(res) => {
+                RistApplicationSpecificMessage::RTTEchoResponse(res.unmarshal())
+            }
+            RistApplicationSpecificMessageView::RangeNack(rn) => {
+                RistApplicationSpecificMessage::RangeNack(rn.unmarshal())
+            }
+        }
+    }
+}
+
+pub enum RistApplicationSpecificMessage {
+    RTTEchoRequest(EchoMessage),
+    RTTEchoResponse(EchoMessage),
+    RangeNack(RangeNackMessage),
 }

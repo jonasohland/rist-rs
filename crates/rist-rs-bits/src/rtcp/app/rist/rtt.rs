@@ -1,3 +1,5 @@
+use crate::util::read_int;
+
 pub mod error {
 
     #[derive(Debug, Clone, Copy)]
@@ -10,11 +12,11 @@ pub const SUBTYPE_RTT_ECHO_REQ: u8 = 2;
 pub const SUBTYPE_RTT_ECHO_RES: u8 = 3;
 
 #[derive(Debug, Clone, Copy)]
-pub struct EchoMessage<'a> {
+pub struct EchoMessageView<'a> {
     data: &'a [u8],
 }
 
-impl<'a> EchoMessage<'a> {
+impl<'a> EchoMessageView<'a> {
     const PACKET_LEN_MIN: usize = 12;
 
     pub fn try_new<T, U>(bytes: &'a T) -> Result<Self, error::Error>
@@ -31,7 +33,26 @@ impl<'a> EchoMessage<'a> {
         }
     }
 
-    pub fn timestamp() -> rist_rs_types::time::ntp::Timestamp {
-        todo!()
+    pub fn timestamp(&self) -> rist_rs_types::time::ntp::Timestamp {
+        rist_rs_types::time::ntp::Timestamp::new(
+            read_int!(self.data, u32, 0),
+            read_int!(self.data, u32, 4),
+        )
+    }
+
+    pub fn unmarshal(&self) -> EchoMessage {
+        EchoMessage {
+            timestamp: self.timestamp(),
+        }
+    }
+}
+
+pub struct EchoMessage {
+    timestamp: rist_rs_types::time::ntp::Timestamp,
+}
+
+impl EchoMessage {
+    pub fn timestamp(&self) -> rist_rs_types::time::ntp::Timestamp {
+        self.timestamp
     }
 }
