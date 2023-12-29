@@ -1,7 +1,7 @@
 use core::fmt::Display;
 use std::{ops::Add, time::Duration};
 
-use crate::traits::time::clock::Clock;
+use crate::traits::time::clock::{Clock, TimePoint};
 
 #[derive(Debug, Clone, Copy)]
 pub struct Timestamp {
@@ -17,10 +17,18 @@ impl Display for Timestamp {
 
 impl Timestamp {
     const FRAC: f64 = std::u32::MAX as f64;
-    const EPOCH_DELTA: u64 = 2_208_988_800;
 
     pub fn new(sec: u32, frac: u32) -> Timestamp {
         Timestamp { sec, frac }
+    }
+
+    pub fn from_time_point<C: Clock>(
+        tp: C::TimePoint,
+    ) -> Result<Timestamp, <C::TimePoint as TimePoint>::Error> {
+        let ep = tp.duration_since(C::epoch())?;
+        let ns = (ep.subsec_nanos() as f64 * Self::FRAC * 1.0e-9) as u32;
+        let s = (ep.as_secs() as i64 + C::ntp_epoch_offset()) as u32;
+        Ok(Self::new(s, ns))
     }
 
     pub fn seconds(&self) -> u32 {
@@ -45,7 +53,7 @@ impl Timestamp {
 
     pub fn to_instant<C: Clock>(&self) -> C::TimePoint {
         C::epoch().add(Duration::new(
-            self.sec as u64 - Self::EPOCH_DELTA,
+            (self.sec as i64 - C::ntp_epoch_offset()) as u64,
             self.frac_ns() as u32,
         ))
     }

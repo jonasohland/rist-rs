@@ -297,7 +297,7 @@ impl<'a> Iterator for RTCPPacketViewIterator<'a> {
 mod test {
     use core::ops::Sub;
 
-    use rist_rs_types::traits::time::clock::StdSystemClock;
+    use rist_rs_types::{time::ntp, traits::time::clock::StdSystemClock};
 
     use super::RTCPPacketView;
     use crate::rtcp::RTCPPacketViewIterator;

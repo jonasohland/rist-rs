@@ -64,7 +64,11 @@ pub trait Clock: Clone + Send + 'static {
     /// Returns true if the clocks time is monotonically increasing
     fn is_monotonic(&self) -> bool;
 
+    // This clocks epoch as a point in time
     fn epoch() -> Self::TimePoint;
+
+    // Offset of this clocks epoch to the NTP epoch in seconds
+    fn ntp_epoch_offset() -> i64;
 }
 
 cfg_std! {
@@ -92,7 +96,11 @@ cfg_std! {
         }
 
         fn epoch() -> Self::TimePoint {
-            std::time::UNIX_EPOCH
+            UNIX_EPOCH
+        }
+
+        fn ntp_epoch_offset() -> i64 {
+            2208988800
         }
     }
 
