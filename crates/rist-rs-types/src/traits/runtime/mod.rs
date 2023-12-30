@@ -16,6 +16,7 @@ bitflags! {
 
 pub enum Error {
     WouldBlock,
+    NoBuffers,
     AddrInUse,
     AlreadyExists,
     InvalidInput,
@@ -41,6 +42,7 @@ impl From<std::io::Error> for Error {
             std::io::ErrorKind::AddrInUse => Self::AddrInUse,
             std::io::ErrorKind::AlreadyExists => Self::AlreadyExists,
             std::io::ErrorKind::InvalidInput => Self::InvalidInput,
+            _ if value.raw_os_error().unwrap_or(0) == 55 => Self::NoBuffers,
             _ => Self::Any(Box::new(value)),
         }
     }
@@ -56,6 +58,7 @@ impl Debug for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::WouldBlock => write!(f, "WouldBlock"),
+            Self::NoBuffers => write!(f, "NoBuffers"),
             Self::AddrInUse => write!(f, "AddrInUse"),
             Self::AlreadyExists => write!(f, "AlreadyExists"),
             Self::InvalidInput => write!(f, "InvalidInput"),
@@ -72,6 +75,7 @@ impl Clone for Error {
     fn clone(&self) -> Self {
         match self {
             Self::WouldBlock => Self::WouldBlock,
+            Self::NoBuffers => Self::NoBuffers,
             Self::AddrInUse => Self::AddrInUse,
             Self::AlreadyExists => Self::AlreadyExists,
             Self::InvalidInput => Self::InvalidInput,

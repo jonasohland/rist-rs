@@ -241,24 +241,40 @@ mod test {
         assert_eq!(packet_in, packet_out);
     }
 
+    #[cfg(any(target_os = "linux", target_os = "windows"))]
     #[test]
     fn test_tx_would_block() {
         let packet_out = [0u8; 1280];
-        let send_adr: SocketAddr = "100.100.100.100:10221".parse().unwrap();
+        let send_adr: SocketAddr = "1.1.1.1:10221".parse().unwrap();
         let mut io = NetIo::try_new().unwrap();
         let sock = io
             .bind(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)))
             .unwrap();
         if let crate::Socket::Net(sock_id) = sock {
             let mut events = Events::new(6);
-            loop {
-                match io.send_to(sock_id, &packet_out, send_adr) {
-                    Err(runtime::Error::WouldBlock) => break,
-                    Err(e) => panic!("{:?}", e),
-                    Ok(_) => {}
+
+            'writeable: loop {
+                io.poll(&mut events);
+                while let Some(ev) = events.pop() {
+                    match ev {
+                        IOV::Ready(s, flags) if flags.contains(ReadyFlags::Writable) => {
+                            break 'writeable
+                        }
+                        ev => println!("{ev:?}"),
+                    }
                 }
             }
 
+            loop {
+                println!("write");
+                match io.send_to(sock_id, &packet_out, send_adr) {
+                    Err(runtime::Error::WouldBlock) => break,
+                    Err(e) => panic!("{:?}", e),
+                    Ok(_) => { /*println!("write")*/ }
+                }
+            }
+
+            println!("wait writable");
             poll_write_one(&mut io, &packet_out, send_adr);
         } else {
             panic!("invalid socket type returned")
