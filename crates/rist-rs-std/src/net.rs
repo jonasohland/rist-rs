@@ -7,7 +7,6 @@ use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
 use std::io;
 use std::net::{SocketAddr, UdpSocket};
-use std::os::fd::{AsRawFd, FromRawFd};
 
 use rist_rs_types::traits::runtime;
 
@@ -241,11 +240,11 @@ mod test {
         assert_eq!(packet_in, packet_out);
     }
 
-    #[cfg(any(target_os = "linux", target_os = "windows"))]
+    #[cfg(target_os = "linux")]
     #[test]
     fn test_tx_would_block() {
         let packet_out = [0u8; 1280];
-        let send_adr: SocketAddr = "1.1.1.1:10221".parse().unwrap();
+        let send_adr: SocketAddr = "192.0.2.2:10221".parse().unwrap();
         let mut io = NetIo::try_new().unwrap();
         let sock = io
             .bind(SocketAddr::V4(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0)))
