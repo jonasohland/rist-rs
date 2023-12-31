@@ -7,6 +7,8 @@ use rist_rs_types::traits::{
     runtime,
 };
 
+use rist_rs_util::futures::noop_waker::noop_waker;
+
 use slab::Slab;
 use tokio::net::UdpSocket;
 
@@ -138,10 +140,14 @@ impl NetIo {
     }
 
     pub fn bind(&mut self, addr: SocketAddr) -> Result<crate::Socket, runtime::Error> {
-        let waker = noop_waker::noop_waker();
+        // create a dummy waker to poll the connect() future once
+        let waker = noop_waker();
         let mut cx = Context::from_waker(&waker);
 
+        // create and pin the future
         let mut future = Box::pin(UdpSocket::bind(addr));
+
+        // poll once
         let sock = match Pin::new(&mut future).poll(&mut cx) {
             task::Poll::Ready(res) => res?,
             task::Poll::Pending => Err(runtime::Error::Str(
@@ -159,11 +165,14 @@ impl NetIo {
             .get_mut(sock)
             .ok_or(runtime::Error::InvalidInput)?;
 
-        let mut future_boxed = Box::pin(sock.get().connect(addr));
-
-        let waker = noop_waker::noop_waker();
+        // create a dummy waker to poll the connect() future once
+        let waker = noop_waker();
         let mut cx = Context::from_waker(&waker);
 
+        // pin the future
+        let mut future_boxed = Box::pin(sock.get().connect(addr));
+
+        // poll once
         match Pin::new(&mut future_boxed).poll(&mut cx) {
             task::Poll::Ready(res) => res.map_err(From::from),
             task::Poll::Pending => Err(runtime::Error::Str(

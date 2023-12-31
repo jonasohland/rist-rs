@@ -19,3 +19,5 @@ pub mod stream;
 pub mod collections;
 
 pub mod util;
+
+pub mod futures;

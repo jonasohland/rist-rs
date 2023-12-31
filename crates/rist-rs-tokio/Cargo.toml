@@ -8,10 +8,10 @@ bitflags        = "2.4"
 futures-channel = { version = "0.3" }
 rist-rs-core    = { path = "../rist-rs-core", features = ["std"] }
 rist-rs-types   = { path = "../rist-rs-types", features = ["std"] }
+rist-rs-util    = { path = "../rist-rs-util", features = ["std"] }
 slab            = { version = "0.4" }
 tokio           = { version = "1.25", features = ["net", "time", "rt", "macros"] }
 tracing         = { version = "0.1" }
-noop-waker      = { version = "0.1" }
 
 [features]
 default    = ["log"]
