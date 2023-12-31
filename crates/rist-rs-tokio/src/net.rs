@@ -1,10 +1,6 @@
 use core::task;
 
-use std::{
-    fmt::Debug,
-    net::SocketAddr,
-    os::fd::{AsRawFd, FromRawFd, IntoRawFd},
-};
+use std::{fmt::Debug, future::Future, net::SocketAddr, pin::Pin, task::Context};
 
 use rist_rs_types::traits::{
     protocol::{self, Ctl, ReadyFlags, IOV},
@@ -142,10 +138,15 @@ impl NetIo {
     }
 
     pub fn bind(&mut self, addr: SocketAddr) -> Result<crate::Socket, runtime::Error> {
-        let stdsock = socket2::Socket::from(std::net::UdpSocket::bind(addr)?);
-        stdsock.set_nonblocking(true)?;
-        let sock = unsafe {
-            UdpSocket::from_std(std::net::UdpSocket::from_raw_fd(stdsock.into_raw_fd()))?
+        let waker = noop_waker::noop_waker();
+        let mut cx = Context::from_waker(&waker);
+
+        let mut future = Box::pin(UdpSocket::bind(addr));
+        let sock = match Pin::new(&mut future).poll(&mut cx) {
+            task::Poll::Ready(res) => res?,
+            task::Poll::Pending => Err(runtime::Error::Str(
+                "tokio bind() pending after poll, but polling not possible",
+            ))?,
         };
         Ok(crate::Socket::Net(
             self.socks.insert(SocketState::new(sock)),
@@ -157,9 +158,18 @@ impl NetIo {
             .socks
             .get_mut(sock)
             .ok_or(runtime::Error::InvalidInput)?;
-        unsafe { std::net::UdpSocket::from_raw_fd(sock.get().as_raw_fd()) }
-            .connect(addr)
-            .map_err(From::from)
+
+        let mut future_boxed = Box::pin(sock.get().connect(addr));
+
+        let waker = noop_waker::noop_waker();
+        let mut cx = Context::from_waker(&waker);
+
+        match Pin::new(&mut future_boxed).poll(&mut cx) {
+            task::Poll::Ready(res) => res.map_err(From::from),
+            task::Poll::Pending => Err(runtime::Error::Str(
+                "tokio connect() pending after poll, but polling not possible",
+            ))?,
+        }
     }
 
     pub fn send(&mut self, sock: usize, buf: &[u8]) -> Result<(), runtime::Error> {

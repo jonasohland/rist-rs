@@ -11,7 +11,7 @@ rist-rs-types   = { path = "../rist-rs-types", features = ["std"] }
 slab            = { version = "0.4" }
 tokio           = { version = "1.25", features = ["net", "time", "rt", "macros"] }
 tracing         = { version = "0.1" }
-socket2         = { version = "0.4" }
+noop-waker      = { version = "0.1" }
 
 [features]
 default    = ["log"]
