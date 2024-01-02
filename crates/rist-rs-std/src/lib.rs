@@ -19,15 +19,7 @@ pub enum SocketAddr {
     NetworkAddress(StdSocketAddr),
 }
 
-impl runtime::SocketAddr for SocketAddr {
-    fn network_address(&self) -> Option<&std::net::SocketAddr> {
-        #[allow(unreachable_patterns)]
-        match self {
-            SocketAddr::NetworkAddress(addr) => Some(addr),
-            _ => None,
-        }
-    }
-}
+impl runtime::SocketAddr for SocketAddr {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Socket {
@@ -58,11 +50,7 @@ impl runtime::Runtime for StdRuntime {
         StdSystemClock
     }
 
-    fn bind(
-        &mut self,
-        address: Self::SocketAddr,
-        flags: runtime::SocketFlags,
-    ) -> Result<Self::Socket, runtime::Error> {
+    fn bind(&mut self, address: Self::SocketAddr) -> Result<Self::Socket, runtime::Error> {
         match address {
             SocketAddr::NetworkAddress(net) => self.net.bind(net),
         }

@@ -2,8 +2,8 @@ use std::io;
 
 use rist_rs_std::StdRuntime;
 use rist_rs_types::traits::{
-    protocol::{Ctl, Protocol, ProtocolEvent, IOV},
-    runtime::Runtime,
+    protocol::{Ctl, Protocol, ProtocolEvent},
+    runtime::{Event, Runtime},
 };
 
 #[derive(Clone, Debug)]
@@ -37,7 +37,7 @@ where
 {
     type Ctl = SimpleCtl;
 
-    fn run(&mut self, rt: &mut R, _: &[IOV<R, Self::Ctl>]) -> ProtocolEvent<R> {
+    fn run(&mut self, rt: &mut R, _: &[Event<R, Self::Ctl>]) -> ProtocolEvent<R> {
         ProtocolEvent::asap(&rt.get_default_clock())
     }
 }

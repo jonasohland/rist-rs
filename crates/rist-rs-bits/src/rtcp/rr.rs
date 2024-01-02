@@ -16,6 +16,10 @@ pub struct ReceiverReportMessageView<'a> {
     data: &'a [u8],
 }
 
+pub struct ReceiverReportMessage {
+    rxrps: Vec<()>,
+}
+
 impl<'a> TryFrom<&'a [u8]> for ReceiverReportMessageView<'a> {
     type Error = error::Error;
 

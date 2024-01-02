@@ -1,6 +1,7 @@
 #![allow(unused)]
 use mio::{Poll, Token};
-use rist_rs_types::traits::protocol::{self, Ctl, Events, ReadyFlags, IOV};
+use rist_rs_types::traits::protocol::{self, Ctl};
+use rist_rs_types::traits::runtime::{Event, Events, Readiness};
 use std::collections::hash_map::{DefaultHasher, Entry};
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
@@ -18,10 +19,10 @@ pub(crate) struct NetIo {
     events: mio::Events,
 }
 
-fn map_ev_flags(ev: &mio::event::Event) -> ReadyFlags {
-    let mut out = ReadyFlags::empty();
-    out.set(ReadyFlags::Readable, ev.is_readable());
-    out.set(ReadyFlags::Writable, ev.is_writable());
+fn map_ev_flags(ev: &mio::event::Event) -> Readiness {
+    let mut out = Readiness::empty();
+    out.set(Readiness::Readable, ev.is_readable());
+    out.set(Readiness::Writable, ev.is_writable());
     out
 }
 
@@ -109,7 +110,7 @@ impl NetIo {
     pub(crate) fn map_event<C: protocol::Ctl>(
         &self,
         input: &mio::event::Event,
-    ) -> protocol::IOV<StdRuntime, C> {
+    ) -> Event<StdRuntime, C> {
         match input {
             ev if ev.is_error() => {
                 match self
@@ -117,16 +118,18 @@ impl NetIo {
                     .get(ev.token().0)
                     .map(mio::net::UdpSocket::take_error)
                 {
-                    Some(Ok(Some(err))) => IOV::Error(crate::Socket::Net(ev.token().0), err.into()),
-                    any => IOV::Empty,
+                    Some(Ok(Some(err))) => {
+                        Event::Error(crate::Socket::Net(ev.token().0), err.into())
+                    }
+                    any => Event::Empty,
                 }
             }
             ev if ev.is_readable() || ev.is_writable() => {
-                IOV::Ready(crate::Socket::Net(ev.token().0), map_ev_flags(ev))
+                Event::Ready(crate::Socket::Net(ev.token().0), map_ev_flags(ev))
             }
             ev => {
                 tracing::error!(?ev, "unexpected event");
-                IOV::Empty
+                Event::Empty
             }
         }
     }
@@ -140,7 +143,7 @@ impl NetIo {
         // copy events
         for ev in self.events.iter() {
             match self.map_event(ev) {
-                IOV::Empty => {}
+                Event::Empty => {}
                 ev => events.push(ev),
             }
         }
@@ -155,9 +158,8 @@ mod test {
     };
 
     use rist_rs_types::traits::{
-        packet,
-        protocol::{self, ReadyFlags, IOV},
-        runtime,
+        packet, protocol,
+        runtime::{self, Event, Readiness},
     };
     use socket2::SockAddr;
 
@@ -168,7 +170,7 @@ mod test {
     #[derive(Debug, Clone)]
     struct TestCtl;
 
-    type Events = protocol::Events<StdRuntime, TestCtl>;
+    type Events = runtime::Events<StdRuntime, TestCtl>;
 
     impl protocol::Ctl for TestCtl {
         type Error = ();
@@ -190,8 +192,8 @@ mod test {
         loop {
             io.poll(&mut events);
 
-            if let protocol::IOV::Ready(Socket::Net(s), flags) = events.pop().unwrap() {
-                if flags.contains(ReadyFlags::Readable) {
+            if let Event::Ready(Socket::Net(s), flags) = events.pop().unwrap() {
+                if flags.contains(Readiness::Readable) {
                     let len = io.recv(s, &mut buf).unwrap();
                     return buf.split_at(len).0.into();
                 }
@@ -204,8 +206,8 @@ mod test {
         loop {
             io.poll(&mut events);
 
-            if let protocol::IOV::Ready(Socket::Net(s), flags) = events.pop().unwrap() {
-                if flags.contains(ReadyFlags::Writable) {
+            if let Event::Ready(Socket::Net(s), flags) = events.pop().unwrap() {
+                if flags.contains(Readiness::Writable) {
                     io.send_to(s, buf, addr).unwrap();
                     return;
                 }
@@ -256,7 +258,7 @@ mod test {
                 io.poll(&mut events);
                 while let Some(ev) = events.pop() {
                     match ev {
-                        IOV::Ready(s, flags) if flags.contains(ReadyFlags::Writable) => {
+                        Event::Ready(s, flags) if flags.contains(Readiness::Writable) => {
                             break 'writeable
                         }
                         ev => println!("{ev:?}"),

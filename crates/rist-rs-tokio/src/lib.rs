@@ -23,15 +23,7 @@ impl From<std::net::SocketAddr> for SocketAddr {
     }
 }
 
-impl runtime::SocketAddr for SocketAddr {
-    fn network_address(&self) -> Option<&std::net::SocketAddr> {
-        #[allow(unreachable_patterns)]
-        match self {
-            SocketAddr::NetworkAddress(addr) => Some(addr),
-            _ => None,
-        }
-    }
-}
+impl runtime::SocketAddr for SocketAddr {}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Socket {
@@ -80,7 +72,6 @@ impl runtime::Runtime for Runtime {
     fn bind(
         &mut self,
         _address: Self::SocketAddr,
-        _flags: rist_rs_types::traits::runtime::SocketFlags,
     ) -> Result<Self::Socket, rist_rs_types::traits::runtime::Error> {
         todo!()
     }

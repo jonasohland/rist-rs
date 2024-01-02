@@ -3,8 +3,8 @@ use core::task;
 use std::{fmt::Debug, net::SocketAddr};
 
 use rist_rs_types::traits::{
-    protocol::{self, Ctl, ReadyFlags, IOV},
-    runtime,
+    protocol::Ctl,
+    runtime::{self, Event, Events, Readiness},
 };
 
 use rist_rs_util::futures::try_poll_once;
@@ -94,17 +94,17 @@ impl SocketState {
         &mut self,
         id: usize,
         cx: &mut task::Context<'_>,
-    ) -> Option<IOV<crate::Runtime, C>> {
+    ) -> Option<Event<crate::Runtime, C>> {
         if !self.need_poll() {
             None
         } else {
-            let mut readiness = ReadyFlags::empty();
+            let mut readiness = Readiness::empty();
             if self.flags.contains(SockFlags::ReadBlocked) {
                 println!("poll rcv");
                 match self.sock.poll_recv_ready(cx) {
                     task::Poll::Ready(Ok(_)) => {
                         self.flags.remove(SockFlags::ReadBlocked);
-                        readiness.set(ReadyFlags::Readable, true)
+                        readiness.set(Readiness::Readable, true)
                     }
                     task::Poll::Ready(Err(_)) => {}
                     task::Poll::Pending => {}
@@ -114,14 +114,14 @@ impl SocketState {
                 match self.sock.poll_send_ready(cx) {
                     task::Poll::Ready(Ok(_)) => {
                         self.flags.remove(SockFlags::WriteBlocked);
-                        readiness.set(ReadyFlags::Writable, true)
+                        readiness.set(Readiness::Writable, true)
                     }
                     task::Poll::Ready(Err(_)) => {}
                     task::Poll::Pending => {}
                 }
             }
             if !readiness.is_empty() {
-                Some(protocol::IOV::Ready(crate::Socket::Net(id), readiness))
+                Some(Event::Ready(crate::Socket::Net(id), readiness))
             } else {
                 None
             }
@@ -200,7 +200,7 @@ impl NetIo {
     pub fn poll<C: Ctl>(
         &mut self,
         cx: &mut task::Context<'_>,
-        events: &mut protocol::Events<crate::Runtime, C>,
+        events: &mut Events<crate::Runtime, C>,
     ) {
         for (id, sock) in &mut self.socks {
             if let Some(ev) = sock.poll(id, cx) {
@@ -215,8 +215,8 @@ mod test {
     use std::future::Future;
 
     use rist_rs_types::traits::{
-        protocol::{self, ReadyFlags, IOV},
-        runtime,
+        protocol,
+        runtime::{self, Event, Readiness},
     };
 
     use super::NetIo;
@@ -224,7 +224,7 @@ mod test {
     #[derive(Debug, Clone)]
     struct TestCtl;
 
-    type Events = protocol::Events<crate::Runtime, TestCtl>;
+    type Events = runtime::Events<crate::Runtime, TestCtl>;
 
     impl protocol::Ctl for TestCtl {
         type Error = ();
@@ -278,8 +278,8 @@ mod test {
                 'poll: loop {
                     let mut events = EventsFuture(&mut io).await;
                     while let Some(ev) = events.pop() {
-                        if let IOV::Ready(_, flags) = ev {
-                            if flags.contains(ReadyFlags::Readable) {
+                        if let Event::Ready(_, flags) = ev {
+                            if flags.contains(Readiness::Readable) {
                                 loop {
                                     match io.recv(sock_id, &mut buf) {
                                         Ok(len) => {

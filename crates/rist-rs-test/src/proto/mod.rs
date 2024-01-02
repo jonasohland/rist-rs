@@ -7,8 +7,8 @@ use std::{
 };
 
 use rist_rs_types::traits::{
-    protocol::{Ctl, Protocol, ProtocolEvent, IOV},
-    runtime::{self, Runtime, SocketAddr as TSocketAddr},
+    protocol::{Ctl, Protocol, ProtocolEvent},
+    runtime::{self, Event, Runtime, SocketAddr as TSocketAddr},
     time::clock::{Clock, TimePoint},
 };
 
@@ -161,7 +161,7 @@ where
 {
     type Ctl = SimpleProtoCtl;
 
-    fn run(&mut self, rt: &mut R, _iov: &[IOV<R, Self::Ctl>]) -> ProtocolEvent<R> {
+    fn run(&mut self, rt: &mut R, _iov: &[Event<R, Self::Ctl>]) -> ProtocolEvent<R> {
         todo!()
     }
 
