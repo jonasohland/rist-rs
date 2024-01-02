@@ -1,13 +1,13 @@
 use core::task;
 
-use std::{fmt::Debug, future::Future, net::SocketAddr, pin::Pin, task::Context};
+use std::{fmt::Debug, net::SocketAddr};
 
 use rist_rs_types::traits::{
     protocol::{self, Ctl, ReadyFlags, IOV},
     runtime,
 };
 
-use rist_rs_util::futures::noop_waker::noop_waker;
+use rist_rs_util::futures::try_poll_once;
 
 use slab::Slab;
 use tokio::net::UdpSocket;
@@ -140,22 +140,9 @@ impl NetIo {
     }
 
     pub fn bind(&mut self, addr: SocketAddr) -> Result<crate::Socket, runtime::Error> {
-        // create a dummy waker to poll the connect() future once
-        let waker = noop_waker();
-        let mut cx = Context::from_waker(&waker);
-
-        // create and pin the future
-        let mut future = Box::pin(UdpSocket::bind(addr));
-
         // poll once
-        let sock = match Pin::new(&mut future).poll(&mut cx) {
-            task::Poll::Ready(res) => res?,
-            task::Poll::Pending => Err(runtime::Error::Str(
-                "tokio bind() pending after poll, but polling not possible",
-            ))?,
-        };
         Ok(crate::Socket::Net(
-            self.socks.insert(SocketState::new(sock)),
+            self.socks.insert(SocketState::new(try_poll_once(UdpSocket::bind(addr)).ok_or(runtime::Error::Str("tokio bind() still pending after first poll, but repeated polling is not possible in this context"))??)),
         ))
     }
 
@@ -165,20 +152,8 @@ impl NetIo {
             .get_mut(sock)
             .ok_or(runtime::Error::InvalidInput)?;
 
-        // create a dummy waker to poll the connect() future once
-        let waker = noop_waker();
-        let mut cx = Context::from_waker(&waker);
-
-        // pin the future
-        let mut future_boxed = Box::pin(sock.get().connect(addr));
-
         // poll once
-        match Pin::new(&mut future_boxed).poll(&mut cx) {
-            task::Poll::Ready(res) => res.map_err(From::from),
-            task::Poll::Pending => Err(runtime::Error::Str(
-                "tokio connect() pending after poll, but polling not possible",
-            ))?,
-        }
+        try_poll_once(sock.get().connect(addr)).ok_or(runtime::Error::Str("tokio connect() still pending after first poll, but repeated polling is not possible in this context"))?.map_err(From::from)
     }
 
     pub fn send(&mut self, sock: usize, buf: &[u8]) -> Result<(), runtime::Error> {
@@ -285,6 +260,7 @@ mod test {
     }
 
     #[allow(unused)]
+    // #[tokio::test]
     async fn test_rx() {
         let mut io = NetIo::new();
 
